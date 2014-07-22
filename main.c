@@ -31,6 +31,9 @@
 #include "RaspiPreview.h"
 #include "RaspiCLI.h"
 ////////////////////////////////////////////////////////////////////////////////
+#include "opencv/cv.h"
+#include "opencv/highgui.h"
+////////////////////////////////////////////////////////////////////////////////
 #include <semaphore.h>
 ////////////////////////////////////////////////////////////////////////////////
 /// Camera number to use - we only have one camera, indexed from 0.
@@ -98,6 +101,8 @@ struct RASPIVID_STATE_S
     MMAL_COMPONENT_T *camera_component ; /// Pointer to the camera component    
 
     MMAL_POOL_T *video_pool ; /// Pointer to the pool of buffers used by video output port
+
+    IplImage *py ;
 } ;
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -160,10 +165,21 @@ static void video_buffer_callback ( MMAL_PORT_T *port , MMAL_BUFFER_HEADER_T *bu
 
     if ( pData )
     {
+
         if ( buffer->length )
         {
 
             mmal_buffer_header_mem_lock ( buffer ) ;
+
+            int w = pData->pstate->width ;
+            int h = pData->pstate->height ;
+
+            printf ( "Size(%dX%d)\n" , w , h ) ;
+            printf ( "data=%d\n" , buffer->data ) ;
+            printf ( "idata=%d\n" , pData->pstate->py->imageData ) ;
+            
+            memcpy ( pData->pstate->py->imageData , buffer->data , w * h ) ; // read Y
+
             pData->pstate->nCount ++ ; // count frames displayed
 
             mmal_buffer_header_mem_unlock ( buffer ) ;
@@ -192,6 +208,7 @@ static void video_buffer_callback ( MMAL_PORT_T *port , MMAL_BUFFER_HEADER_T *bu
         if ( ! new_buffer || status != MMAL_SUCCESS )
             vcos_log_error ( "Unable to return a buffer to the encoder port" ) ;
     }
+
 }
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -487,6 +504,10 @@ int main ( int argc , const char **argv )
 
     default_status ( &state ) ;
 
+    int w = state.width ;
+    int h = state.height ;
+    state.py = cvCreateImage ( cvSize ( w , h ) , IPL_DEPTH_8U , 1 ) ;
+
     // OK, we have a nice set of parameters. Now set up our components
     // We have three components. Camera, Preview and encoder.
     if ( ( status = create_camera_component ( &state ) ) != MMAL_SUCCESS )
@@ -531,12 +552,14 @@ int main ( int argc , const char **argv )
 
 
         // Now wait until we need to stop
-        vcos_sleep ( 5000 ) ;
+        vcos_sleep ( 10000 ) ;
 error:
         time ( &timer_end ) ;
         secondsElapsed = difftime ( timer_end , timer_begin ) ;
 
-        printf ( "%.f seconds for %d frames : FPS = %f\n" , secondsElapsed , state.nCount , ( float ) ( ( float ) ( state.nCount ) / secondsElapsed ) ) ;
+        printf ( "%.f seconds for %d frames : FPS = %f\n" , secondsElapsed , state.nCount , ( ( float ) state.nCount ) / secondsElapsed ) ;
+
+        cvReleaseImage ( &state.py ) ;
 
         mmal_status_to_int ( status ) ;
 
@@ -547,7 +570,7 @@ error:
     }
 
     if ( status != MMAL_SUCCESS )
-        raspicamcontrol_check_configuration ( 128 ) ;    
+        raspicamcontrol_check_configuration ( 128 ) ;
 
     return exit_code ;
 }
