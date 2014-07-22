@@ -2,6 +2,7 @@
 //Copyright (c) 2013, Broadcom Europe Ltd
 //Copyright (c) 2013, James Hughes
 //All rights reserved.
+//Many source code lines are copied from camcv_vid0.c - by Pierre Raufast
 //Modified by Silvio Delgado
 ////////////////////////////////////////////////////////////////////////////////
 // We use some GNU extensions (basename)
@@ -532,10 +533,10 @@ int main ( int argc , const char **argv )
         // Now wait until we need to stop
         vcos_sleep ( 5000 ) ;
 error:
-
+        time ( &timer_end ) ;
         secondsElapsed = difftime ( timer_end , timer_begin ) ;
 
-        printf ( "%.f seconds for %d frames : FPS = %f\n" , secondsElapsed , state.nCount , ( ( float ) state.nCount ) / secondsElapsed ) ;
+        printf ( "%.f seconds for %d frames : FPS = %f\n" , secondsElapsed , state.nCount , ( float ) ( ( float ) ( state.nCount ) / secondsElapsed ) ) ;
 
         mmal_status_to_int ( status ) ;
 
@@ -546,7 +547,7 @@ error:
     }
 
     if ( status != MMAL_SUCCESS )
-        raspicamcontrol_check_configuration ( 128 ) ;
+        raspicamcontrol_check_configuration ( 128 ) ;    
 
     return exit_code ;
 }
