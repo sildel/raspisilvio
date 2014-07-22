@@ -75,6 +75,7 @@ static void signal_handler ( int signal_number ) ;
 ////////////////////////////////////////////////////////////////////////////////
 // Forward
 typedef struct RASPIVID_STATE_S RASPIVID_STATE ;
+uchar mojon[307200] ;
 ////////////////////////////////////////////////////////////////////////////////
 
 /** Struct used to pass information in encoder port userdata to callback
@@ -174,10 +175,6 @@ static void video_buffer_callback ( MMAL_PORT_T *port , MMAL_BUFFER_HEADER_T *bu
             int w = pData->pstate->width ;
             int h = pData->pstate->height ;
 
-            printf ( "Size(%dX%d)\n" , w , h ) ;
-            printf ( "data=%d\n" , buffer->data ) ;
-            printf ( "idata=%d\n" , pData->pstate->py->imageData ) ;
-            
             memcpy ( pData->pstate->py->imageData , buffer->data , w * h ) ; // read Y
 
             pData->pstate->nCount ++ ; // count frames displayed
@@ -306,10 +303,9 @@ static MMAL_STATUS_T create_camera_component ( RASPIVID_STATE *state )
 
     format = video_port->format ;
     format->encoding_variant = MMAL_ENCODING_I420 ;
-
-    format->encoding = MMAL_ENCODING_OPAQUE ;
-    format->es->video.width = VCOS_ALIGN_UP ( state->width , 32 ) ;
-    format->es->video.height = VCOS_ALIGN_UP ( state->height , 16 ) ;
+    format->encoding = MMAL_ENCODING_I420 ;
+    format->es->video.width = state->width ;
+    format->es->video.height = state->height ;
     format->es->video.crop.x = 0 ;
     format->es->video.crop.y = 0 ;
     format->es->video.crop.width = state->width ;
@@ -557,9 +553,7 @@ error:
         time ( &timer_end ) ;
         secondsElapsed = difftime ( timer_end , timer_begin ) ;
 
-        printf ( "%.f seconds for %d frames : FPS = %f\n" , secondsElapsed , state.nCount , ( ( float ) state.nCount ) / secondsElapsed ) ;
-
-        cvReleaseImage ( &state.py ) ;
+        printf ( "%.f seconds for %d frames : FPS = %f\n" , secondsElapsed , state.nCount , ( ( float ) state.nCount ) / secondsElapsed ) ;        
 
         mmal_status_to_int ( status ) ;
 
@@ -571,6 +565,8 @@ error:
 
     if ( status != MMAL_SUCCESS )
         raspicamcontrol_check_configuration ( 128 ) ;
+    
+    cvReleaseImage ( &state.py ) ;
 
     return exit_code ;
 }
