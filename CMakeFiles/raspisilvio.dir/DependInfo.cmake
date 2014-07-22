@@ -8,6 +8,7 @@ SET(CMAKE_DEPENDS_CHECK_C
   "/home/pi/Projects/raspisilvio/RaspiCamControl.c" "/home/pi/Projects/raspisilvio/CMakeFiles/raspisilvio.dir/RaspiCamControl.c.o"
   "/home/pi/Projects/raspisilvio/RaspiPreview.c" "/home/pi/Projects/raspisilvio/CMakeFiles/raspisilvio.dir/RaspiPreview.c.o"
   "/home/pi/Projects/raspisilvio/main.c" "/home/pi/Projects/raspisilvio/CMakeFiles/raspisilvio.dir/main.c.o"
+  "/home/pi/Projects/raspisilvio/raspisilvio.c" "/home/pi/Projects/raspisilvio/CMakeFiles/raspisilvio.dir/raspisilvio.c.o"
   )
 SET(CMAKE_C_COMPILER_ID "GNU")
 
@@ -17,8 +18,9 @@ SET(CMAKE_TARGET_LINKED_INFO_FILES
 
 # The include file search paths:
 SET(CMAKE_C_TARGET_INCLUDE_PATH
+  "/usr/include/opencv"
   "/opt/vc/include"
-  "/home/pi/Projects/raspisilvio2"
+  "."
   "/opt/vc/userland-master/host_applications/linux/libs/bcm_host/include"
   "/opt/vc/userland-master/interface/vcos"
   "/opt/vc/userland-master"

@@ -72,32 +72,9 @@ CMakeFiles/raspisilvio.dir/RaspiCamControl.c.o.provides: CMakeFiles/raspisilvio.
 
 CMakeFiles/raspisilvio.dir/RaspiCamControl.c.o.provides.build: CMakeFiles/raspisilvio.dir/RaspiCamControl.c.o
 
-CMakeFiles/raspisilvio.dir/RaspiCLI.c.o: CMakeFiles/raspisilvio.dir/flags.make
-CMakeFiles/raspisilvio.dir/RaspiCLI.c.o: RaspiCLI.c
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/pi/Projects/raspisilvio/CMakeFiles $(CMAKE_PROGRESS_2)
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building C object CMakeFiles/raspisilvio.dir/RaspiCLI.c.o"
-	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -o CMakeFiles/raspisilvio.dir/RaspiCLI.c.o   -c /home/pi/Projects/raspisilvio/RaspiCLI.c
-
-CMakeFiles/raspisilvio.dir/RaspiCLI.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/raspisilvio.dir/RaspiCLI.c.i"
-	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -E /home/pi/Projects/raspisilvio/RaspiCLI.c > CMakeFiles/raspisilvio.dir/RaspiCLI.c.i
-
-CMakeFiles/raspisilvio.dir/RaspiCLI.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/raspisilvio.dir/RaspiCLI.c.s"
-	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -S /home/pi/Projects/raspisilvio/RaspiCLI.c -o CMakeFiles/raspisilvio.dir/RaspiCLI.c.s
-
-CMakeFiles/raspisilvio.dir/RaspiCLI.c.o.requires:
-.PHONY : CMakeFiles/raspisilvio.dir/RaspiCLI.c.o.requires
-
-CMakeFiles/raspisilvio.dir/RaspiCLI.c.o.provides: CMakeFiles/raspisilvio.dir/RaspiCLI.c.o.requires
-	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/RaspiCLI.c.o.provides.build
-.PHONY : CMakeFiles/raspisilvio.dir/RaspiCLI.c.o.provides
-
-CMakeFiles/raspisilvio.dir/RaspiCLI.c.o.provides.build: CMakeFiles/raspisilvio.dir/RaspiCLI.c.o
-
 CMakeFiles/raspisilvio.dir/RaspiPreview.c.o: CMakeFiles/raspisilvio.dir/flags.make
 CMakeFiles/raspisilvio.dir/RaspiPreview.c.o: RaspiPreview.c
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/pi/Projects/raspisilvio/CMakeFiles $(CMAKE_PROGRESS_3)
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/pi/Projects/raspisilvio/CMakeFiles $(CMAKE_PROGRESS_2)
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building C object CMakeFiles/raspisilvio.dir/RaspiPreview.c.o"
 	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -o CMakeFiles/raspisilvio.dir/RaspiPreview.c.o   -c /home/pi/Projects/raspisilvio/RaspiPreview.c
 
@@ -118,9 +95,55 @@ CMakeFiles/raspisilvio.dir/RaspiPreview.c.o.provides: CMakeFiles/raspisilvio.dir
 
 CMakeFiles/raspisilvio.dir/RaspiPreview.c.o.provides.build: CMakeFiles/raspisilvio.dir/RaspiPreview.c.o
 
+CMakeFiles/raspisilvio.dir/RaspiCLI.c.o: CMakeFiles/raspisilvio.dir/flags.make
+CMakeFiles/raspisilvio.dir/RaspiCLI.c.o: RaspiCLI.c
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/pi/Projects/raspisilvio/CMakeFiles $(CMAKE_PROGRESS_3)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building C object CMakeFiles/raspisilvio.dir/RaspiCLI.c.o"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -o CMakeFiles/raspisilvio.dir/RaspiCLI.c.o   -c /home/pi/Projects/raspisilvio/RaspiCLI.c
+
+CMakeFiles/raspisilvio.dir/RaspiCLI.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/raspisilvio.dir/RaspiCLI.c.i"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -E /home/pi/Projects/raspisilvio/RaspiCLI.c > CMakeFiles/raspisilvio.dir/RaspiCLI.c.i
+
+CMakeFiles/raspisilvio.dir/RaspiCLI.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/raspisilvio.dir/RaspiCLI.c.s"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -S /home/pi/Projects/raspisilvio/RaspiCLI.c -o CMakeFiles/raspisilvio.dir/RaspiCLI.c.s
+
+CMakeFiles/raspisilvio.dir/RaspiCLI.c.o.requires:
+.PHONY : CMakeFiles/raspisilvio.dir/RaspiCLI.c.o.requires
+
+CMakeFiles/raspisilvio.dir/RaspiCLI.c.o.provides: CMakeFiles/raspisilvio.dir/RaspiCLI.c.o.requires
+	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/RaspiCLI.c.o.provides.build
+.PHONY : CMakeFiles/raspisilvio.dir/RaspiCLI.c.o.provides
+
+CMakeFiles/raspisilvio.dir/RaspiCLI.c.o.provides.build: CMakeFiles/raspisilvio.dir/RaspiCLI.c.o
+
+CMakeFiles/raspisilvio.dir/raspisilvio.c.o: CMakeFiles/raspisilvio.dir/flags.make
+CMakeFiles/raspisilvio.dir/raspisilvio.c.o: raspisilvio.c
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/pi/Projects/raspisilvio/CMakeFiles $(CMAKE_PROGRESS_4)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building C object CMakeFiles/raspisilvio.dir/raspisilvio.c.o"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -o CMakeFiles/raspisilvio.dir/raspisilvio.c.o   -c /home/pi/Projects/raspisilvio/raspisilvio.c
+
+CMakeFiles/raspisilvio.dir/raspisilvio.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/raspisilvio.dir/raspisilvio.c.i"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -E /home/pi/Projects/raspisilvio/raspisilvio.c > CMakeFiles/raspisilvio.dir/raspisilvio.c.i
+
+CMakeFiles/raspisilvio.dir/raspisilvio.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/raspisilvio.dir/raspisilvio.c.s"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -S /home/pi/Projects/raspisilvio/raspisilvio.c -o CMakeFiles/raspisilvio.dir/raspisilvio.c.s
+
+CMakeFiles/raspisilvio.dir/raspisilvio.c.o.requires:
+.PHONY : CMakeFiles/raspisilvio.dir/raspisilvio.c.o.requires
+
+CMakeFiles/raspisilvio.dir/raspisilvio.c.o.provides: CMakeFiles/raspisilvio.dir/raspisilvio.c.o.requires
+	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/raspisilvio.c.o.provides.build
+.PHONY : CMakeFiles/raspisilvio.dir/raspisilvio.c.o.provides
+
+CMakeFiles/raspisilvio.dir/raspisilvio.c.o.provides.build: CMakeFiles/raspisilvio.dir/raspisilvio.c.o
+
 CMakeFiles/raspisilvio.dir/main.c.o: CMakeFiles/raspisilvio.dir/flags.make
 CMakeFiles/raspisilvio.dir/main.c.o: main.c
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/pi/Projects/raspisilvio/CMakeFiles $(CMAKE_PROGRESS_4)
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/pi/Projects/raspisilvio/CMakeFiles $(CMAKE_PROGRESS_5)
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building C object CMakeFiles/raspisilvio.dir/main.c.o"
 	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -o CMakeFiles/raspisilvio.dir/main.c.o   -c /home/pi/Projects/raspisilvio/main.c
 
@@ -144,16 +167,18 @@ CMakeFiles/raspisilvio.dir/main.c.o.provides.build: CMakeFiles/raspisilvio.dir/m
 # Object files for target raspisilvio
 raspisilvio_OBJECTS = \
 "CMakeFiles/raspisilvio.dir/RaspiCamControl.c.o" \
-"CMakeFiles/raspisilvio.dir/RaspiCLI.c.o" \
 "CMakeFiles/raspisilvio.dir/RaspiPreview.c.o" \
+"CMakeFiles/raspisilvio.dir/RaspiCLI.c.o" \
+"CMakeFiles/raspisilvio.dir/raspisilvio.c.o" \
 "CMakeFiles/raspisilvio.dir/main.c.o"
 
 # External object files for target raspisilvio
 raspisilvio_EXTERNAL_OBJECTS =
 
 raspisilvio: CMakeFiles/raspisilvio.dir/RaspiCamControl.c.o
-raspisilvio: CMakeFiles/raspisilvio.dir/RaspiCLI.c.o
 raspisilvio: CMakeFiles/raspisilvio.dir/RaspiPreview.c.o
+raspisilvio: CMakeFiles/raspisilvio.dir/RaspiCLI.c.o
+raspisilvio: CMakeFiles/raspisilvio.dir/raspisilvio.c.o
 raspisilvio: CMakeFiles/raspisilvio.dir/main.c.o
 raspisilvio: CMakeFiles/raspisilvio.dir/build.make
 raspisilvio: /opt/vc/lib/libmmal_core.so
@@ -172,8 +197,9 @@ CMakeFiles/raspisilvio.dir/build: raspisilvio
 .PHONY : CMakeFiles/raspisilvio.dir/build
 
 CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/RaspiCamControl.c.o.requires
-CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/RaspiCLI.c.o.requires
 CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/RaspiPreview.c.o.requires
+CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/RaspiCLI.c.o.requires
+CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/raspisilvio.c.o.requires
 CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/main.c.o.requires
 .PHONY : CMakeFiles/raspisilvio.dir/requires
 

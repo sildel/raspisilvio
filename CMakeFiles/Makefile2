@@ -59,7 +59,7 @@ CMAKE_BINARY_DIR = /home/pi/Projects/raspisilvio
 CMakeFiles/raspisilvio.dir/all:
 	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/depend
 	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/build
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/pi/Projects/raspisilvio/CMakeFiles  1 2 3 4
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/pi/Projects/raspisilvio/CMakeFiles  1 2 3 4 5
 	@echo "Built target raspisilvio"
 .PHONY : CMakeFiles/raspisilvio.dir/all
 
@@ -69,7 +69,7 @@ all: CMakeFiles/raspisilvio.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/raspisilvio.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/pi/Projects/raspisilvio/CMakeFiles 4
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/pi/Projects/raspisilvio/CMakeFiles 5
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/raspisilvio.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/pi/Projects/raspisilvio/CMakeFiles 0
 .PHONY : CMakeFiles/raspisilvio.dir/rule

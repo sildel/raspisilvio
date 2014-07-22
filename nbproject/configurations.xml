@@ -27,12 +27,6 @@
       <in>tga.c</in>
       <in>tga.h</in>
     </df>
-    <logicalFolder name="raspisilvio2"
-                   displayName="raspisilvio2"
-                   projectFiles="true"
-                   root="../raspisilvio2">
-      <itemPath>../raspisilvio2/RaspiTex.h</itemPath>
-    </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
                    projectFiles="false"
@@ -64,8 +58,6 @@
           <executablePath>raspisilvio</executablePath>
         </makeTool>
       </makefileType>
-      <item path="../raspisilvio2/RaspiTex.h" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="RaspiCLI.c" ex="false" tool="0" flavor2="2">
         <cTool>
           <incDir>

@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 2.8)
 project( raspisilvio )
 SET(COMPILE_DEFINITIONS -Werror)
+
+find_package( OpenCV REQUIRED )
+
 include_directories(/opt/vc/include)
-include_directories(/home/pi/Projects/raspisilvio2)
+include_directories(/home/pi/Projects/raspisilvio)
 include_directories(/opt/vc/userland-master/host_applications/linux/libs/bcm_host/include)
 include_directories(/opt/vc/userland-master/interface/vcos)
 include_directories(/opt/vc/userland-master)
@@ -19,12 +22,12 @@ set (GL_SCENE_SOURCES
 
 set (COMMON_SOURCES
    RaspiCamControl.c
-   RaspiCLI.c
-   RaspiPreview.c)
+   RaspiPreview.c
+   RaspiCLI.c)
 
 #add_executable(raspisilvio ${COMMON_SOURCES} main.c raspisilvio.c RaspiTex.c RaspiTexUtil.c tga.c ${GL_SCENE_SOURCES})
-add_executable(raspisilvio ${COMMON_SOURCES} main.c)
+add_executable(raspisilvio ${COMMON_SOURCES} raspisilvio.c main.c)
 
 set (THE_LIBS /opt/vc/lib/libmmal_core.so /opt/vc/lib/libmmal_util.so /opt/vc/lib/libmmal_vc_client.so /opt/vc/lib/libvcos.so /opt/vc/lib/libbcm_host.so /opt/vc/lib/libGLESv2.so /opt/vc/lib/libEGL.so m)
 
-target_link_libraries(raspisilvio ${THE_LIBS})
+target_link_libraries(raspisilvio ${THE_LIBS} ${OpenCV_LIBS})
