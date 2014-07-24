@@ -52,6 +52,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 int mmal_status_to_int(MMAL_STATUS_T status);
 void signal_handler(int signal_number);
+extern int the_flag;
 ////////////////////////////////////////////////////////////////////////////////
 // Forward
 typedef struct RASPIVID_STATE_S RASPIVID_STATE;
@@ -73,6 +74,21 @@ struct RASPIVID_STATE_S {
     MMAL_POOL_T *video_pool; /// Pointer to the pool of buffers used by video output port
 
     IplImage *py;
+    IplImage *pu;
+    IplImage *pv;
+    IplImage *pu_big;
+    IplImage *pv_big;
+    IplImage *image;
+    IplImage *dstImage;
+    IplImage *imgThresh;
+    IplImage *hsvImage;
+
+    int H_min_value;
+    int S_min_value;
+    int V_min_value;
+    int H_max_value;
+    int S_max_value;
+    int V_max_value;
 };
 ////////////////////////////////////////////////////////////////////////////////
 void camera_control_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer);

@@ -10,6 +10,8 @@
 
 int main ( int argc , const char **argv )
 {
+    
+    the_flag = 1;
     // Our main data storage vessel..
     RASPIVID_STATE state ;
     int exit_code = EX_OK ;
@@ -35,7 +37,28 @@ int main ( int argc , const char **argv )
 
     int w = state.width ;
     int h = state.height ;
-    state.py = cvCreateImage ( cvSize ( w , h ) , IPL_DEPTH_8U , 1 ) ;
+    state.py = cvCreateImage ( cvSize ( w , h ) , IPL_DEPTH_8U , 1 ) ; // Y component of YUV I420 frame
+    state.pu = cvCreateImage ( cvSize ( w / 2 , h / 2 ) , IPL_DEPTH_8U , 1 ) ; // U component of YUV I420 frame
+    state.pv = cvCreateImage ( cvSize ( w / 2 , h / 2 ) , IPL_DEPTH_8U , 1 ) ; // V component of YUV I420 frame
+    state.pu_big = cvCreateImage ( cvSize ( w , h ) , IPL_DEPTH_8U , 1 ) ;
+    state.pv_big = cvCreateImage ( cvSize ( w , h ) , IPL_DEPTH_8U , 1 ) ;
+    state.image = cvCreateImage ( cvSize ( w , h ) , IPL_DEPTH_8U , 3 ) ; // final picture to display
+    state.dstImage = cvCreateImage ( cvSize ( w , h ) , IPL_DEPTH_8U , 3 ) ;
+    state.imgThresh = cvCreateImage ( cvSize ( w , h ) , IPL_DEPTH_8U , 1 ) ;
+    state.hsvImage = cvCreateImage ( cvSize ( w , h ) , IPL_DEPTH_8U , 3 ) ; // final picture to display
+
+    cvNamedWindow ( "videoWindow" , CV_WINDOW_AUTOSIZE ) ;
+    cvNamedWindow ( "videoWindow2" , CV_WINDOW_AUTOSIZE ) ;
+
+    cvNamedWindow ( "Tune HSV" , CV_WINDOW_AUTOSIZE ) ;
+
+    cvCreateTrackbar2 ( "H min value" , "Tune HSV" , &state.H_min_value , 255 , NULL , NULL ) ;
+    cvCreateTrackbar2 ( "S min value" , "Tune HSV" , &state.S_min_value , 255 , NULL , NULL ) ;
+    cvCreateTrackbar2 ( "V min value" , "Tune HSV" , &state.V_min_value , 255 , NULL , NULL ) ;
+
+    cvCreateTrackbar2 ( "H max value" , "Tune HSV" , &state.H_max_value , 255 , NULL , NULL ) ;
+    cvCreateTrackbar2 ( "S max value" , "Tune HSV" , &state.S_max_value , 255 , NULL , NULL ) ;
+    cvCreateTrackbar2 ( "V max value" , "Tune HSV" , &state.V_max_value , 255 , NULL , NULL ) ;
 
     // OK, we have a nice set of parameters. Now set up our components
     // We have three components. Camera, Preview and encoder.
@@ -73,9 +96,11 @@ int main ( int argc , const char **argv )
                 vcos_log_error ( "Unable to send a buffer to encoder output port (%d)" , q ) ;
         }
 
+        while ( 1 )
+        {
+            vcos_sleep ( 2000 ) ;
+        }
 
-        // Now wait until we need to stop
-        vcos_sleep ( 10000 ) ;
 error:
         time ( &timer_end ) ;
         secondsElapsed = difftime ( timer_end , timer_begin ) ;
@@ -94,6 +119,18 @@ error:
         raspicamcontrol_check_configuration ( 128 ) ;
 
     cvReleaseImage ( &state.py ) ;
+    cvReleaseImage ( &state.pu ) ;
+    cvReleaseImage ( &state.pv ) ;
+    cvReleaseImage ( &state.pu_big ) ;
+    cvReleaseImage ( &state.pv_big ) ;
+    cvReleaseImage ( &state.dstImage ) ;
+    cvReleaseImage ( &state.image ) ;
+    cvReleaseImage ( &state.imgThresh ) ;
+    cvReleaseImage ( &state.hsvImage ) ;
+
+    cvDestroyWindow ( "videoWindow" ) ;
+    cvDestroyWindow ( "videoWindow2" ) ;
+    cvDestroyWindow ( "Tune HSV" ) ;
 
     return exit_code ;
 }
