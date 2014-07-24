@@ -7,7 +7,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include "raspisilvio.h"
 ////////////////////////////////////////////////////////////////////////////////
-int the_flag ;
 
 void default_status ( RASPIVID_STATE *state )
 {
@@ -31,12 +30,12 @@ void default_status ( RASPIVID_STATE *state )
 
     state->nCount = 0 ;
 
-    state->H_min_value = 100 ;
-    state->S_min_value = 115 ;
-    state->V_min_value = 40 ;
-    state->H_max_value = 110 ;
-    state->S_max_value = 205 ;
-    state->V_max_value = 116 ;
+    state->H_min_value = 10 ;
+    state->S_min_value = 100 ;
+    state->V_min_value = 0 ;
+    state->H_max_value = 44 ;
+    state->S_max_value = 255 ;
+    state->V_max_value = 25 ;
 }
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -81,34 +80,19 @@ void video_buffer_callback ( MMAL_PORT_T *port , MMAL_BUFFER_HEADER_T *buffer )
 
             int w = pData->width ; // get image size
             int h = pData->height ;
-            int h4 = h / 4 ;
 
-            memcpy ( pData->py->imageData , buffer->data , w * h ) ; // read Y
+            memcpy ( pData->image->imageData , buffer->data , w * h * 3 ) ; // read BGR24
 
-            if ( 1 == 1 )
-            {
-                if ( the_flag == 1 )
-                {
-                    memcpy ( pData->pu->imageData , buffer->data + w*h , w * h4 ) ; // read U
-                    memcpy ( pData->pv->imageData , buffer->data + w * h + w*h4 , w * h4 ) ; // read v
+            cvCvtColor ( pData->image , pData->hsvImage , CV_BGR2HSV ) ;
+            cvInRangeS ( pData->hsvImage , cvScalar ( pData->H_min_value ,
+                                                      pData->S_min_value ,
+                                                      pData->V_min_value , 0 ) ,
+                         cvScalar ( pData->H_max_value ,
+                                    pData->S_max_value ,
+                                    pData->V_max_value , 0 ) ,
+                         pData->thresholdedImage ) ;
 
-                    cvResize ( pData->pu , pData->pu_big , CV_INTER_NN ) ;
-                    cvResize ( pData->pv , pData->pv_big , CV_INTER_NN ) ; //CV_INTER_LINEAR looks better but it's slower
-                    cvMerge ( pData->py , pData->pu_big , pData->pv_big , NULL , pData->image ) ;
-                    cvCvtColor ( pData->image , pData->dstImage , CV_YCrCb2RGB ) ; // convert in RGB color space (slow)
-                    cvCvtColor ( pData->dstImage , pData->hsvImage , CV_RGB2HSV ) ; // convert in HSV color space (slow)
-                    cvShowImage ( "videoWindow2" , pData->dstImage ) ; //display only gray channel
-                    printf ( "Doing %d\n" , pData->nCount ) ;
-                }
-
-                cvInRangeS ( pData->hsvImage , cvScalar ( pData->H_min_value , pData->S_min_value , pData->V_min_value , 0 ) , cvScalar ( pData->H_max_value , pData->S_max_value , pData->V_max_value , 0 ) , pData->imgThresh ) ;
-
-                cvShowImage ( "videoWindow" , pData->imgThresh ) ;
-            }
-            else
-            {
-                cvShowImage ( "videoWindow" , pData->py ) ; //display only gray channel
-            }
+            cvShowImage ( "videoWindow" , pData->thresholdedImage ) ;
 
             cvWaitKey ( 1 ) ;
 
@@ -237,8 +221,8 @@ MMAL_STATUS_T create_camera_component ( RASPIVID_STATE *state )
     // Set the encode format on the video  port
 
     format = video_port->format ;
-    format->encoding_variant = MMAL_ENCODING_I420 ;
-    format->encoding = MMAL_ENCODING_I420 ;
+    format->encoding_variant = MMAL_ENCODING_BGR24 ;
+    format->encoding = MMAL_ENCODING_BGR24 ;
     format->es->video.width = state->width ;
     format->es->video.height = state->height ;
     format->es->video.crop.x = 0 ;
@@ -404,14 +388,7 @@ void signal_handler ( int signal_number )
     {
         // Going to abort on all other signals
         vcos_log_error ( "Aborting program\n" ) ;
-        if ( the_flag == 0 )
-        {
-            exit ( 130 ) ;
-        }
-        else
-        {
-            the_flag = 0 ;
-        }
+        exit ( 130 ) ;
     }
 }
 ////////////////////////////////////////////////////////////////////////////////
