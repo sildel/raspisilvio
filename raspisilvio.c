@@ -82,17 +82,8 @@ void video_buffer_callback ( MMAL_PORT_T *port , MMAL_BUFFER_HEADER_T *buffer )
             int h = pData->height ;
 
             memcpy ( pData->image->imageData , buffer->data , w * h * 3 ) ; // read BGR24
-
-            cvCvtColor ( pData->image , pData->hsvImage , CV_BGR2HSV ) ;
-            cvInRangeS ( pData->hsvImage , cvScalar ( pData->H_min_value ,
-                                                      pData->S_min_value ,
-                                                      pData->V_min_value , 0 ) ,
-                         cvScalar ( pData->H_max_value ,
-                                    pData->S_max_value ,
-                                    pData->V_max_value , 0 ) ,
-                         pData->thresholdedImage ) ;
-
-            cvShowImage ( "videoWindow" , pData->thresholdedImage ) ;
+            
+            cvShowImage ( "videoWindow" , pData->image ) ;
 
             cvWaitKey ( 1 ) ;
 
