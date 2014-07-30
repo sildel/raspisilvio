@@ -60,6 +60,10 @@ const int ABORT_INTERVAL = 100 ; // ms
 /// Run/record forever
 #define WAIT_METHOD_FOREVER        4
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+char imageDataY[307200] ;
+char imageDataU[76800] ;
+char imageDataV[76800] ;
+////////////////////////////////////////////////////////////////////////////////////////////////////
 int mmal_status_to_int ( MMAL_STATUS_T status ) ;
 static void signal_handler ( int signal_number ) ;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -75,7 +79,7 @@ struct RASPIVID_STATE_S
     int height ; /// requested height of image
     int bitrate ; /// Requested bitrate
     int framerate ; /// Requested frame rate (fps)
-    RASPIPREVIEW_PARAMETERS preview_parameters ; /// Preview setup parameters
+
     RASPICAM_CAMERA_PARAMETERS camera_parameters ; /// Camera setup parameters
 
     MMAL_COMPONENT_T *camera_component ; /// Pointer to the camera component
@@ -106,9 +110,6 @@ static void default_status ( RASPIVID_STATE *state )
     state->height = 480 ;
     state->bitrate = 17000000 ; // This is a decent default bitrate for 1080p
     state->framerate = VIDEO_FRAME_RATE_NUM ;
-
-    // Setup preview window defaults
-    raspipreview_set_defaults ( &state->preview_parameters ) ;
 
     // Set up the camera_parameters to default
     raspicamcontrol_set_defaults ( &state->camera_parameters ) ;
@@ -161,6 +162,11 @@ static void video_buffer_callback ( MMAL_PORT_T *port , MMAL_BUFFER_HEADER_T *bu
             //
             int w = pData->width ; // get image size
             int h = pData->height ;
+            int h4 = h / 4 ;
+
+            memcpy ( imageDataY , buffer->data , w * h ) ; // read Y
+            memcpy ( imageDataU , buffer->data + w*h , w * h4 ) ; // read U
+            memcpy ( imageDataV , buffer->data + w * h + w*h4 , w * h4 ) ; // read v
 
             mmal_buffer_header_mem_unlock ( buffer ) ;
         }
@@ -169,7 +175,7 @@ static void video_buffer_callback ( MMAL_PORT_T *port , MMAL_BUFFER_HEADER_T *bu
     }
     else
     {
-        vcos_log_error ( "Received a encoder buffer callback with no state" ) ;
+        vcos_log_error ( "Received a video buffer callback with no state" ) ;
     }
 
     // release buffer back to the pool
@@ -287,7 +293,7 @@ static MMAL_STATUS_T create_camera_component ( RASPIVID_STATE *state )
     format = video_port->format ;
     format->encoding_variant = MMAL_ENCODING_I420 ;
 
-    format->encoding = MMAL_ENCODING_OPAQUE ;
+    format->encoding = MMAL_ENCODING_I420 ;
     format->es->video.width = VCOS_ALIGN_UP ( state->width , 32 ) ;
     format->es->video.height = VCOS_ALIGN_UP ( state->height , 16 ) ;
     format->es->video.crop.x = 0 ;
@@ -493,31 +499,11 @@ int main ( int argc , const char **argv )
         vcos_log_error ( "%s: Failed to create camera component" , __func__ ) ;
         exit_code = EX_SOFTWARE ;
     }
-    else if ( ( status = raspipreview_create ( &state.preview_parameters ) ) != MMAL_SUCCESS )
-    {
-        vcos_log_error ( "%s: Failed to create preview component" , __func__ ) ;
-        destroy_camera_component ( &state ) ;
-        exit_code = EX_SOFTWARE ;
-    }
     else
     {
         camera_preview_port = state.camera_component->output[MMAL_CAMERA_PREVIEW_PORT] ;
         camera_video_port = state.camera_component->output[MMAL_CAMERA_VIDEO_PORT] ;
         camera_still_port = state.camera_component->output[MMAL_CAMERA_CAPTURE_PORT] ;
-        preview_input_port = state.preview_parameters.preview_component->input[0] ;
-
-        if ( state.preview_parameters.wantPreview )
-        {
-            // Connect camera to preview
-            status = connect_ports ( camera_preview_port , preview_input_port , &state.preview_connection ) ;
-
-            if ( status != MMAL_SUCCESS )
-                state.preview_connection = NULL ;
-        }
-        else
-        {
-            status = MMAL_SUCCESS ;
-        }
 
         camera_video_port->userdata = ( struct MMAL_PORT_USERDATA_T * ) &state ;
 
@@ -533,7 +519,7 @@ int main ( int argc , const char **argv )
                 vcos_log_error ( "Unable to get a required buffer %d from pool queue" , q ) ;
 
             if ( mmal_port_send_buffer ( camera_video_port , buffer ) != MMAL_SUCCESS )
-                vcos_log_error ( "Unable to send a buffer to encoder output port (%d)" , q ) ;
+                vcos_log_error ( "Unable to send a buffer to video output port (%d)" , q ) ;
         }
 
         // start capture
@@ -541,7 +527,7 @@ int main ( int argc , const char **argv )
         {
             goto error ;
         }
-        
+
         vcos_sleep ( 5000 ) ;
 
 error:
@@ -552,17 +538,10 @@ error:
         check_disable_port ( camera_still_port ) ;
         check_disable_port ( camera_video_port ) ;
 
-        if ( state.preview_parameters.wantPreview && state.preview_connection )
-            mmal_connection_destroy ( state.preview_connection ) ;
-
         /* Disable components */
-        if ( state.preview_parameters.preview_component )
-            mmal_component_disable ( state.preview_parameters.preview_component ) ;
-
         if ( state.camera_component )
             mmal_component_disable ( state.camera_component ) ;
 
-        raspipreview_destroy ( &state.preview_parameters ) ;
         destroy_camera_component ( &state ) ;
     }
 

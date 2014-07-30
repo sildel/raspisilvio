@@ -12,6 +12,8 @@
           <in>CMakeCXXCompilerId.cpp</in>
         </df>
         <df name="raspisilvio.dir">
+          <df name="gl_scenes">
+          </df>
         </df>
       </df>
       <df name="gl_scenes">

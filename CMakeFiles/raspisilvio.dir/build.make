@@ -141,12 +141,228 @@ CMakeFiles/raspisilvio.dir/main.c.o.provides: CMakeFiles/raspisilvio.dir/main.c.
 
 CMakeFiles/raspisilvio.dir/main.c.o.provides.build: CMakeFiles/raspisilvio.dir/main.c.o
 
+CMakeFiles/raspisilvio.dir/RaspiTex.c.o: CMakeFiles/raspisilvio.dir/flags.make
+CMakeFiles/raspisilvio.dir/RaspiTex.c.o: RaspiTex.c
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/pi/Projects/raspisilvio/CMakeFiles $(CMAKE_PROGRESS_5)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building C object CMakeFiles/raspisilvio.dir/RaspiTex.c.o"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -o CMakeFiles/raspisilvio.dir/RaspiTex.c.o   -c /home/pi/Projects/raspisilvio/RaspiTex.c
+
+CMakeFiles/raspisilvio.dir/RaspiTex.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/raspisilvio.dir/RaspiTex.c.i"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -E /home/pi/Projects/raspisilvio/RaspiTex.c > CMakeFiles/raspisilvio.dir/RaspiTex.c.i
+
+CMakeFiles/raspisilvio.dir/RaspiTex.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/raspisilvio.dir/RaspiTex.c.s"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -S /home/pi/Projects/raspisilvio/RaspiTex.c -o CMakeFiles/raspisilvio.dir/RaspiTex.c.s
+
+CMakeFiles/raspisilvio.dir/RaspiTex.c.o.requires:
+.PHONY : CMakeFiles/raspisilvio.dir/RaspiTex.c.o.requires
+
+CMakeFiles/raspisilvio.dir/RaspiTex.c.o.provides: CMakeFiles/raspisilvio.dir/RaspiTex.c.o.requires
+	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/RaspiTex.c.o.provides.build
+.PHONY : CMakeFiles/raspisilvio.dir/RaspiTex.c.o.provides
+
+CMakeFiles/raspisilvio.dir/RaspiTex.c.o.provides.build: CMakeFiles/raspisilvio.dir/RaspiTex.c.o
+
+CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.o: CMakeFiles/raspisilvio.dir/flags.make
+CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.o: RaspiTexUtil.c
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/pi/Projects/raspisilvio/CMakeFiles $(CMAKE_PROGRESS_6)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building C object CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.o"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -o CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.o   -c /home/pi/Projects/raspisilvio/RaspiTexUtil.c
+
+CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.i"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -E /home/pi/Projects/raspisilvio/RaspiTexUtil.c > CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.i
+
+CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.s"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -S /home/pi/Projects/raspisilvio/RaspiTexUtil.c -o CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.s
+
+CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.o.requires:
+.PHONY : CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.o.requires
+
+CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.o.provides: CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.o.requires
+	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.o.provides.build
+.PHONY : CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.o.provides
+
+CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.o.provides.build: CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.o
+
+CMakeFiles/raspisilvio.dir/tga.c.o: CMakeFiles/raspisilvio.dir/flags.make
+CMakeFiles/raspisilvio.dir/tga.c.o: tga.c
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/pi/Projects/raspisilvio/CMakeFiles $(CMAKE_PROGRESS_7)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building C object CMakeFiles/raspisilvio.dir/tga.c.o"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -o CMakeFiles/raspisilvio.dir/tga.c.o   -c /home/pi/Projects/raspisilvio/tga.c
+
+CMakeFiles/raspisilvio.dir/tga.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/raspisilvio.dir/tga.c.i"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -E /home/pi/Projects/raspisilvio/tga.c > CMakeFiles/raspisilvio.dir/tga.c.i
+
+CMakeFiles/raspisilvio.dir/tga.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/raspisilvio.dir/tga.c.s"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -S /home/pi/Projects/raspisilvio/tga.c -o CMakeFiles/raspisilvio.dir/tga.c.s
+
+CMakeFiles/raspisilvio.dir/tga.c.o.requires:
+.PHONY : CMakeFiles/raspisilvio.dir/tga.c.o.requires
+
+CMakeFiles/raspisilvio.dir/tga.c.o.provides: CMakeFiles/raspisilvio.dir/tga.c.o.requires
+	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/tga.c.o.provides.build
+.PHONY : CMakeFiles/raspisilvio.dir/tga.c.o.provides
+
+CMakeFiles/raspisilvio.dir/tga.c.o.provides.build: CMakeFiles/raspisilvio.dir/tga.c.o
+
+CMakeFiles/raspisilvio.dir/gl_scenes/models.c.o: CMakeFiles/raspisilvio.dir/flags.make
+CMakeFiles/raspisilvio.dir/gl_scenes/models.c.o: gl_scenes/models.c
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/pi/Projects/raspisilvio/CMakeFiles $(CMAKE_PROGRESS_8)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building C object CMakeFiles/raspisilvio.dir/gl_scenes/models.c.o"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -o CMakeFiles/raspisilvio.dir/gl_scenes/models.c.o   -c /home/pi/Projects/raspisilvio/gl_scenes/models.c
+
+CMakeFiles/raspisilvio.dir/gl_scenes/models.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/raspisilvio.dir/gl_scenes/models.c.i"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -E /home/pi/Projects/raspisilvio/gl_scenes/models.c > CMakeFiles/raspisilvio.dir/gl_scenes/models.c.i
+
+CMakeFiles/raspisilvio.dir/gl_scenes/models.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/raspisilvio.dir/gl_scenes/models.c.s"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -S /home/pi/Projects/raspisilvio/gl_scenes/models.c -o CMakeFiles/raspisilvio.dir/gl_scenes/models.c.s
+
+CMakeFiles/raspisilvio.dir/gl_scenes/models.c.o.requires:
+.PHONY : CMakeFiles/raspisilvio.dir/gl_scenes/models.c.o.requires
+
+CMakeFiles/raspisilvio.dir/gl_scenes/models.c.o.provides: CMakeFiles/raspisilvio.dir/gl_scenes/models.c.o.requires
+	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/gl_scenes/models.c.o.provides.build
+.PHONY : CMakeFiles/raspisilvio.dir/gl_scenes/models.c.o.provides
+
+CMakeFiles/raspisilvio.dir/gl_scenes/models.c.o.provides.build: CMakeFiles/raspisilvio.dir/gl_scenes/models.c.o
+
+CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.o: CMakeFiles/raspisilvio.dir/flags.make
+CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.o: gl_scenes/mirror.c
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/pi/Projects/raspisilvio/CMakeFiles $(CMAKE_PROGRESS_9)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building C object CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.o"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -o CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.o   -c /home/pi/Projects/raspisilvio/gl_scenes/mirror.c
+
+CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.i"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -E /home/pi/Projects/raspisilvio/gl_scenes/mirror.c > CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.i
+
+CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.s"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -S /home/pi/Projects/raspisilvio/gl_scenes/mirror.c -o CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.s
+
+CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.o.requires:
+.PHONY : CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.o.requires
+
+CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.o.provides: CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.o.requires
+	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.o.provides.build
+.PHONY : CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.o.provides
+
+CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.o.provides.build: CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.o
+
+CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.o: CMakeFiles/raspisilvio.dir/flags.make
+CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.o: gl_scenes/yuv.c
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/pi/Projects/raspisilvio/CMakeFiles $(CMAKE_PROGRESS_10)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building C object CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.o"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -o CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.o   -c /home/pi/Projects/raspisilvio/gl_scenes/yuv.c
+
+CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.i"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -E /home/pi/Projects/raspisilvio/gl_scenes/yuv.c > CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.i
+
+CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.s"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -S /home/pi/Projects/raspisilvio/gl_scenes/yuv.c -o CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.s
+
+CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.o.requires:
+.PHONY : CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.o.requires
+
+CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.o.provides: CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.o.requires
+	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.o.provides.build
+.PHONY : CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.o.provides
+
+CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.o.provides.build: CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.o
+
+CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.o: CMakeFiles/raspisilvio.dir/flags.make
+CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.o: gl_scenes/sobel.c
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/pi/Projects/raspisilvio/CMakeFiles $(CMAKE_PROGRESS_11)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building C object CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.o"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -o CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.o   -c /home/pi/Projects/raspisilvio/gl_scenes/sobel.c
+
+CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.i"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -E /home/pi/Projects/raspisilvio/gl_scenes/sobel.c > CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.i
+
+CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.s"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -S /home/pi/Projects/raspisilvio/gl_scenes/sobel.c -o CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.s
+
+CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.o.requires:
+.PHONY : CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.o.requires
+
+CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.o.provides: CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.o.requires
+	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.o.provides.build
+.PHONY : CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.o.provides
+
+CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.o.provides.build: CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.o
+
+CMakeFiles/raspisilvio.dir/gl_scenes/square.c.o: CMakeFiles/raspisilvio.dir/flags.make
+CMakeFiles/raspisilvio.dir/gl_scenes/square.c.o: gl_scenes/square.c
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/pi/Projects/raspisilvio/CMakeFiles $(CMAKE_PROGRESS_12)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building C object CMakeFiles/raspisilvio.dir/gl_scenes/square.c.o"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -o CMakeFiles/raspisilvio.dir/gl_scenes/square.c.o   -c /home/pi/Projects/raspisilvio/gl_scenes/square.c
+
+CMakeFiles/raspisilvio.dir/gl_scenes/square.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/raspisilvio.dir/gl_scenes/square.c.i"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -E /home/pi/Projects/raspisilvio/gl_scenes/square.c > CMakeFiles/raspisilvio.dir/gl_scenes/square.c.i
+
+CMakeFiles/raspisilvio.dir/gl_scenes/square.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/raspisilvio.dir/gl_scenes/square.c.s"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -S /home/pi/Projects/raspisilvio/gl_scenes/square.c -o CMakeFiles/raspisilvio.dir/gl_scenes/square.c.s
+
+CMakeFiles/raspisilvio.dir/gl_scenes/square.c.o.requires:
+.PHONY : CMakeFiles/raspisilvio.dir/gl_scenes/square.c.o.requires
+
+CMakeFiles/raspisilvio.dir/gl_scenes/square.c.o.provides: CMakeFiles/raspisilvio.dir/gl_scenes/square.c.o.requires
+	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/gl_scenes/square.c.o.provides.build
+.PHONY : CMakeFiles/raspisilvio.dir/gl_scenes/square.c.o.provides
+
+CMakeFiles/raspisilvio.dir/gl_scenes/square.c.o.provides.build: CMakeFiles/raspisilvio.dir/gl_scenes/square.c.o
+
+CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o: CMakeFiles/raspisilvio.dir/flags.make
+CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o: gl_scenes/teapot.c
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/pi/Projects/raspisilvio/CMakeFiles $(CMAKE_PROGRESS_13)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building C object CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -o CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o   -c /home/pi/Projects/raspisilvio/gl_scenes/teapot.c
+
+CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.i"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -E /home/pi/Projects/raspisilvio/gl_scenes/teapot.c > CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.i
+
+CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.s"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -S /home/pi/Projects/raspisilvio/gl_scenes/teapot.c -o CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.s
+
+CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o.requires:
+.PHONY : CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o.requires
+
+CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o.provides: CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o.requires
+	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o.provides.build
+.PHONY : CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o.provides
+
+CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o.provides.build: CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o
+
 # Object files for target raspisilvio
 raspisilvio_OBJECTS = \
 "CMakeFiles/raspisilvio.dir/RaspiCamControl.c.o" \
 "CMakeFiles/raspisilvio.dir/RaspiPreview.c.o" \
 "CMakeFiles/raspisilvio.dir/RaspiCLI.c.o" \
-"CMakeFiles/raspisilvio.dir/main.c.o"
+"CMakeFiles/raspisilvio.dir/main.c.o" \
+"CMakeFiles/raspisilvio.dir/RaspiTex.c.o" \
+"CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.o" \
+"CMakeFiles/raspisilvio.dir/tga.c.o" \
+"CMakeFiles/raspisilvio.dir/gl_scenes/models.c.o" \
+"CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.o" \
+"CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.o" \
+"CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.o" \
+"CMakeFiles/raspisilvio.dir/gl_scenes/square.c.o" \
+"CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o"
 
 # External object files for target raspisilvio
 raspisilvio_EXTERNAL_OBJECTS =
@@ -155,6 +371,15 @@ raspisilvio: CMakeFiles/raspisilvio.dir/RaspiCamControl.c.o
 raspisilvio: CMakeFiles/raspisilvio.dir/RaspiPreview.c.o
 raspisilvio: CMakeFiles/raspisilvio.dir/RaspiCLI.c.o
 raspisilvio: CMakeFiles/raspisilvio.dir/main.c.o
+raspisilvio: CMakeFiles/raspisilvio.dir/RaspiTex.c.o
+raspisilvio: CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.o
+raspisilvio: CMakeFiles/raspisilvio.dir/tga.c.o
+raspisilvio: CMakeFiles/raspisilvio.dir/gl_scenes/models.c.o
+raspisilvio: CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.o
+raspisilvio: CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.o
+raspisilvio: CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.o
+raspisilvio: CMakeFiles/raspisilvio.dir/gl_scenes/square.c.o
+raspisilvio: CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o
 raspisilvio: CMakeFiles/raspisilvio.dir/build.make
 raspisilvio: /opt/vc/lib/libmmal_core.so
 raspisilvio: /opt/vc/lib/libmmal_util.so
@@ -175,6 +400,15 @@ CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/RaspiCamControl.
 CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/RaspiPreview.c.o.requires
 CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/RaspiCLI.c.o.requires
 CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/main.c.o.requires
+CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/RaspiTex.c.o.requires
+CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.o.requires
+CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/tga.c.o.requires
+CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/gl_scenes/models.c.o.requires
+CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/gl_scenes/mirror.c.o.requires
+CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.o.requires
+CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.o.requires
+CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/gl_scenes/square.c.o.requires
+CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o.requires
 .PHONY : CMakeFiles/raspisilvio.dir/requires
 
 CMakeFiles/raspisilvio.dir/clean:
