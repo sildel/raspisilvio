@@ -12,8 +12,6 @@
           <in>CMakeCXXCompilerId.cpp</in>
         </df>
         <df name="raspisilvio.dir">
-          <df name="gl_scenes">
-          </df>
         </df>
       </df>
       <df name="gl_scenes">
@@ -59,7 +57,7 @@
   <confs>
     <conf name="Default" type="0">
       <toolsSet>
-        <developmentServer>pi@10.0.0.15:22</developmentServer>
+        <developmentServer>pi@10.0.0.5:22</developmentServer>
         <platform>2</platform>
       </toolsSet>
       <compile>

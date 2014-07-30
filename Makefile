@@ -207,30 +207,6 @@ main.c.s:
 	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/main.c.s
 .PHONY : main.c.s
 
-raspisilvio.o: raspisilvio.c.o
-.PHONY : raspisilvio.o
-
-# target to build an object file
-raspisilvio.c.o:
-	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/raspisilvio.c.o
-.PHONY : raspisilvio.c.o
-
-raspisilvio.i: raspisilvio.c.i
-.PHONY : raspisilvio.i
-
-# target to preprocess a source file
-raspisilvio.c.i:
-	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/raspisilvio.c.i
-.PHONY : raspisilvio.c.i
-
-raspisilvio.s: raspisilvio.c.s
-.PHONY : raspisilvio.s
-
-# target to generate assembly for a file
-raspisilvio.c.s:
-	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/raspisilvio.c.s
-.PHONY : raspisilvio.c.s
-
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -252,9 +228,6 @@ help:
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
-	@echo "... raspisilvio.o"
-	@echo "... raspisilvio.i"
-	@echo "... raspisilvio.s"
 .PHONY : help
 
 
