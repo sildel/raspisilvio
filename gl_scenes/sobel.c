@@ -77,16 +77,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     "\n" \
     "    vec4 v =  p0 + (2.0 * p1) + p3 -p6 + (-2.0 * p7) + -p8;\n" \
     "    vec4 h =  p0 + (2.0 * p3) + p7 -p2 + (-2.0 * p5) + -p8;\n" \
-    "    vec4 col = sqrt(h*h + v*v);"\
-    "    if (col.x>0.2)"\
-    "    {"\
-    "           col = vec4(1.0);"\
-    "    }"\
-    "    else"\
-    "    {"\
-    "           col = vec4(0.0);"\
-    "    }"\
-    "    gl_FragColor = col;\n" \
+    "    gl_FragColor = sqrt(h*h + v*v);\n" \
     "    gl_FragColor.a = 1.0;\n" \
     "}\n"
 

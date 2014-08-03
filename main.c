@@ -1,17 +1,20 @@
-////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// We use some GNU extensions (asprintf, basename)
 #define _GNU_SOURCE
-////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <memory.h>
+#include <unistd.h>
+#include <errno.h>
 #include <sysexits.h>
-////////////////////////////////////////////////////////////////////////////////////////////////////
-#define VERSION_STRING "v1.3.11"
-////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+#define VERSION_STRING "v1.3.7"
+///////////////////////////////////////////////////////////////////////////////////////////////////
 #include "bcm_host.h"
 #include "interface/vcos/vcos.h"
-////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #include "interface/mmal/mmal.h"
 #include "interface/mmal/mmal_logging.h"
 #include "interface/mmal/mmal_buffer.h"
@@ -19,82 +22,62 @@
 #include "interface/mmal/util/mmal_util_params.h"
 #include "interface/mmal/util/mmal_default_components.h"
 #include "interface/mmal/util/mmal_connection.h"
-////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 #include "RaspiCamControl.h"
 #include "RaspiPreview.h"
 #include "RaspiCLI.h"
-////////////////////////////////////////////////////////////////////////////////////////////////////
+#include "RaspiTex.h"
+
 #include <semaphore.h>
-////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Camera number to use - we only have one camera, indexed from 0.
 #define CAMERA_NUMBER 0
-////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 // Standard port setting for the camera component
 #define MMAL_CAMERA_PREVIEW_PORT 0
 #define MMAL_CAMERA_VIDEO_PORT 1
 #define MMAL_CAMERA_CAPTURE_PORT 2
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// Video format information
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Stills format information
 // 0 implies variable
-#define VIDEO_FRAME_RATE_NUM 30
-#define VIDEO_FRAME_RATE_DEN 1
-////////////////////////////////////////////////////////////////////////////////////////////////////
+#define STILLS_FRAME_RATE_NUM 0
+#define STILLS_FRAME_RATE_DEN 1
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Video render needs at least 2 buffers.
 #define VIDEO_OUTPUT_BUFFERS_NUM 3
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// Max bitrate we allow for recording
-const int MAX_BITRATE = 25000000 ; // 25Mbits/s
-////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Interval at which we check for an failure abort during capture
-const int ABORT_INTERVAL = 100 ; // ms
-////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Capture/Pause switch method
-/// Simply capture for time specified
-#define WAIT_METHOD_NONE           0
-/// Cycle between capture and pause for times specified
-#define WAIT_METHOD_TIMED          1
-/// Switch between capture and pause on keypress
-#define WAIT_METHOD_KEYPRESS       2
-/// Switch between capture and pause on signal
-#define WAIT_METHOD_SIGNAL         3
-/// Run/record forever
-#define WAIT_METHOD_FOREVER        4
-////////////////////////////////////////////////////////////////////////////////////////////////////
-char imageDataY[307200] ;
-char imageDataU[76800] ;
-char imageDataV[76800] ;
-////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 int mmal_status_to_int ( MMAL_STATUS_T status ) ;
 static void signal_handler ( int signal_number ) ;
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// Forward
-typedef struct RASPIVID_STATE_S RASPIVID_STATE ;
-////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** Structure containing all state information for the current run
  */
-struct RASPIVID_STATE_S
+typedef struct
 {
     int width ; /// Requested width of image
     int height ; /// requested height of image
-    int bitrate ; /// Requested bitrate
-    int framerate ; /// Requested frame rate (fps)
+    int useGL ; /// Render preview using OpenGL
 
+    RASPIPREVIEW_PARAMETERS preview_parameters ; /// Preview setup parameters
     RASPICAM_CAMERA_PARAMETERS camera_parameters ; /// Camera setup parameters
 
     MMAL_COMPONENT_T *camera_component ; /// Pointer to the camera component
-    MMAL_CONNECTION_T *preview_connection ; /// Pointer to the connection from camera to preview    
+    MMAL_COMPONENT_T *null_sink_component ; /// Pointer to the null sink component
+    MMAL_CONNECTION_T *preview_connection ; /// Pointer to the connection from camera to preview
+    MMAL_CONNECTION_T *encoder_connection ; /// Pointer to the connection from camera to encoder
 
-    MMAL_POOL_T *video_pool ; /// Pointer to the pool of buffers used by video port
-} ;
-////////////////////////////////////////////////////////////////////////////////////////////////////
+    RASPITEX_STATE raspitex_state ; /// GL renderer state and parameters
+
+} RASPISTILL_STATE ;
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Assign a default set of parameters to the state passed in
  *
  * @param state Pointer to state structure to assign defaults to
  */
-static void default_status ( RASPIVID_STATE *state )
+static void default_status ( RASPISTILL_STATE *state )
 {
     if ( ! state )
     {
@@ -102,24 +85,26 @@ static void default_status ( RASPIVID_STATE *state )
         return ;
     }
 
-    // Default everything to zero
-    memset ( state , 0 , sizeof (RASPIVID_STATE ) ) ;
+    state->width = 2592 ;
+    state->height = 1944 ;
 
-    // Now set anything non-zero
-    state->width = 640 ; // Default to 1080p
-    state->height = 480 ;
-    state->bitrate = 17000000 ; // This is a decent default bitrate for 1080p
-    state->framerate = VIDEO_FRAME_RATE_NUM ;
+    state->camera_component = NULL ;
+
+    // Setup preview window defaults
+    raspipreview_set_defaults ( &state->preview_parameters ) ;
 
     // Set up the camera_parameters to default
     raspicamcontrol_set_defaults ( &state->camera_parameters ) ;
+
+    // Set initial GL preview state
+    raspitex_set_defaults ( &state->raspitex_state ) ;
 }
-////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  *  buffer header callback function for camera control
  *
- *  Callback will dump buffer data to the specific file
+ *  No actions taken in current version
  *
  * @param port Pointer to port from which callback originated
  * @param buffer mmal buffer header pointer
@@ -136,77 +121,17 @@ static void camera_control_callback ( MMAL_PORT_T *port , MMAL_BUFFER_HEADER_T *
 
     mmal_buffer_header_release ( buffer ) ;
 }
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- *  buffer header callback function for video
- *
- * @param port Pointer to port from which callback originated
- * @param buffer mmal buffer header pointer
- */
-static void video_buffer_callback ( MMAL_PORT_T *port , MMAL_BUFFER_HEADER_T *buffer )
-{
-    MMAL_BUFFER_HEADER_T *new_buffer ;
-    RASPIVID_STATE *pData = ( RASPIVID_STATE * ) port->userdata ;
-
-    if ( pData )
-    {
-
-        if ( buffer->length )
-        {
-
-            mmal_buffer_header_mem_lock ( buffer ) ;
-
-            //
-            // *** PR : OPEN CV Stuff here !
-            //
-            int w = pData->width ; // get image size
-            int h = pData->height ;
-            int h4 = h / 4 ;
-
-            memcpy ( imageDataY , buffer->data , w * h ) ; // read Y
-            memcpy ( imageDataU , buffer->data + w*h , w * h4 ) ; // read U
-            memcpy ( imageDataV , buffer->data + w * h + w*h4 , w * h4 ) ; // read v
-
-            mmal_buffer_header_mem_unlock ( buffer ) ;
-        }
-        else vcos_log_error ( "buffer null" ) ;
-
-    }
-    else
-    {
-        vcos_log_error ( "Received a video buffer callback with no state" ) ;
-    }
-
-    // release buffer back to the pool
-    mmal_buffer_header_release ( buffer ) ;
-
-    // and send one back to the port (if still open)
-    if ( port->is_enabled )
-    {
-        MMAL_STATUS_T status ;
-
-        new_buffer = mmal_queue_get ( pData->video_pool->queue ) ;
-
-        if ( new_buffer )
-            status = mmal_port_send_buffer ( port , new_buffer ) ;
-
-        if ( ! new_buffer || status != MMAL_SUCCESS )
-            vcos_log_error ( "Unable to return a buffer to the video port" ) ;
-    }
-
-}
-////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Create the camera component, set up its ports
  *
- * @param state Pointer to state control struct
+ * @param state Pointer to state control struct. camera_component member set to the created camera_component if successfull.
  *
  * @return MMAL_SUCCESS if all OK, something else otherwise
  *
  */
-static MMAL_STATUS_T create_camera_component ( RASPIVID_STATE *state )
+static MMAL_STATUS_T create_camera_component ( RASPISTILL_STATE *state )
 {
     MMAL_COMPONENT_T *camera = 0 ;
     MMAL_ES_FORMAT_T *format ;
@@ -249,60 +174,45 @@ static MMAL_STATUS_T create_camera_component ( RASPIVID_STATE *state )
                                                      .max_stills_w = state->width ,
                                                      .max_stills_h = state->height ,
                                                      .stills_yuv422 = 0 ,
-                                                     .one_shot_stills = 0 ,
-                                                     .max_preview_video_w = state->width ,
-                                                     .max_preview_video_h = state->height ,
+                                                     .one_shot_stills = 1 ,
+                                                     .max_preview_video_w = state->preview_parameters.previewWindow.width ,
+                                                     .max_preview_video_h = state->preview_parameters.previewWindow.height ,
                                                      .num_preview_video_frames = 3 ,
                                                      .stills_capture_circular_buffer_height = 0 ,
                                                      .fast_preview_resume = 0 ,
                                                      .use_stc_timestamp = MMAL_PARAM_TIMESTAMP_MODE_RESET_STC
         } ;
+
         mmal_port_parameter_set ( camera->control , &cam_config.hdr ) ;
     }
 
+    raspicamcontrol_set_all_parameters ( camera , &state->camera_parameters ) ;
+
     // Now set up the port formats
 
-    // Set the encode format on the Preview port
-    // HW limitations mean we need the preview to be the same size as the required recorded output
-
     format = preview_port->format ;
-
     format->encoding = MMAL_ENCODING_OPAQUE ;
     format->encoding_variant = MMAL_ENCODING_I420 ;
 
-    format->encoding = MMAL_ENCODING_OPAQUE ;
-    format->es->video.width = VCOS_ALIGN_UP ( state->width , 32 ) ;
-    format->es->video.height = VCOS_ALIGN_UP ( state->height , 16 ) ;
+    // Use a full FOV 4:3 mode
+    format->es->video.width = VCOS_ALIGN_UP ( state->preview_parameters.previewWindow.width , 32 ) ;
+    format->es->video.height = VCOS_ALIGN_UP ( state->preview_parameters.previewWindow.height , 16 ) ;
     format->es->video.crop.x = 0 ;
     format->es->video.crop.y = 0 ;
-    format->es->video.crop.width = state->width ;
-    format->es->video.crop.height = state->height ;
+    format->es->video.crop.width = state->preview_parameters.previewWindow.width ;
+    format->es->video.crop.height = state->preview_parameters.previewWindow.height ;
     format->es->video.frame_rate.num = PREVIEW_FRAME_RATE_NUM ;
     format->es->video.frame_rate.den = PREVIEW_FRAME_RATE_DEN ;
 
     status = mmal_port_format_commit ( preview_port ) ;
-
     if ( status != MMAL_SUCCESS )
     {
         vcos_log_error ( "camera viewfinder format couldn't be set" ) ;
         goto error ;
     }
 
-    // Set the encode format on the video  port
-
-    format = video_port->format ;
-    format->encoding_variant = MMAL_ENCODING_I420 ;
-
-    format->encoding = MMAL_ENCODING_I420 ;
-    format->es->video.width = VCOS_ALIGN_UP ( state->width , 32 ) ;
-    format->es->video.height = VCOS_ALIGN_UP ( state->height , 16 ) ;
-    format->es->video.crop.x = 0 ;
-    format->es->video.crop.y = 0 ;
-    format->es->video.crop.width = state->width ;
-    format->es->video.crop.height = state->height ;
-    format->es->video.frame_rate.num = state->framerate ;
-    format->es->video.frame_rate.den = VIDEO_FRAME_RATE_DEN ;
-
+    // Set the same format on the video  port (which we dont use here)
+    mmal_format_full_copy ( video_port->format , format ) ;
     status = mmal_port_format_commit ( video_port ) ;
 
     if ( status != MMAL_SUCCESS )
@@ -311,44 +221,23 @@ static MMAL_STATUS_T create_camera_component ( RASPIVID_STATE *state )
         goto error ;
     }
 
-    status = mmal_port_enable ( video_port , video_buffer_callback ) ;
-    if ( status )
-    {
-        vcos_log_error ( "camera video callback2 error" ) ;
-        goto error ;
-    }
-
     // Ensure there are enough buffers to avoid dropping frames
     if ( video_port->buffer_num < VIDEO_OUTPUT_BUFFERS_NUM )
         video_port->buffer_num = VIDEO_OUTPUT_BUFFERS_NUM ;
 
-    //Create pool of message on video port
-    MMAL_POOL_T *pool ;
-    video_port->buffer_size = video_port->buffer_size_recommended ;
-    video_port->buffer_num = video_port->buffer_num_recommended ;
-    pool = mmal_port_pool_create ( video_port , video_port->buffer_num , video_port->buffer_size ) ;
-    if ( ! pool )
-    {
-        vcos_log_error ( "Failed to create buffer header pool for video output port" ) ;
-    }
-    state->video_pool = pool ;
-
-
-    // Set the encode format on the still  port
-
     format = still_port->format ;
 
+    // Set our stills format on the stills (for encoder) port
     format->encoding = MMAL_ENCODING_OPAQUE ;
-    format->encoding_variant = MMAL_ENCODING_I420 ;
-
     format->es->video.width = VCOS_ALIGN_UP ( state->width , 32 ) ;
     format->es->video.height = VCOS_ALIGN_UP ( state->height , 16 ) ;
     format->es->video.crop.x = 0 ;
     format->es->video.crop.y = 0 ;
     format->es->video.crop.width = state->width ;
     format->es->video.crop.height = state->height ;
-    format->es->video.frame_rate.num = 0 ;
-    format->es->video.frame_rate.den = 1 ;
+    format->es->video.frame_rate.num = STILLS_FRAME_RATE_NUM ;
+    format->es->video.frame_rate.den = STILLS_FRAME_RATE_DEN ;
+
 
     status = mmal_port_format_commit ( still_port ) ;
 
@@ -371,7 +260,12 @@ static MMAL_STATUS_T create_camera_component ( RASPIVID_STATE *state )
         goto error ;
     }
 
-    raspicamcontrol_set_all_parameters ( camera , &state->camera_parameters ) ;
+    status = raspitex_configure_preview_port ( &state->raspitex_state , preview_port ) ;
+    if ( status != MMAL_SUCCESS )
+    {
+        fprintf ( stderr , "Failed to configure preview port for GL rendering" ) ;
+        goto error ;
+    }
 
     state->camera_component = camera ;
 
@@ -384,7 +278,7 @@ error:
 
     return status ;
 }
-////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Destroy the camera component
@@ -392,7 +286,7 @@ error:
  * @param state Pointer to state control struct
  *
  */
-static void destroy_camera_component ( RASPIVID_STATE *state )
+static void destroy_camera_component ( RASPISTILL_STATE *state )
 {
     if ( state->camera_component )
     {
@@ -400,7 +294,7 @@ static void destroy_camera_component ( RASPIVID_STATE *state )
         state->camera_component = NULL ;
     }
 }
-////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Connect two specific ports together
@@ -426,7 +320,20 @@ static MMAL_STATUS_T connect_ports ( MMAL_PORT_T *output_port , MMAL_PORT_T *inp
 
     return status ;
 }
-////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Allocates and generates a filename based on the
+ * user-supplied pattern and the frame number.
+ * On successful return, finalName and tempName point to malloc()ed strings
+ * which must be freed externally.  (On failure, returns nulls that
+ * don't need free()ing.)
+ *
+ * @param finalName pointer receives an
+ * @param pattern sprintf pattern with %d to be replaced by frame
+ * @param frame for timelapse, the frame number
+ * @return Returns a MMAL_STATUS_T giving result of operation
+ */
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Checks if specified port is valid and enabled, then disables it
@@ -439,7 +346,7 @@ static void check_disable_port ( MMAL_PORT_T *port )
     if ( port && port->is_enabled )
         mmal_port_disable ( port ) ;
 }
-////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Handler for sigint signals
@@ -460,9 +367,8 @@ static void signal_handler ( int signal_number )
         vcos_log_error ( "Aborting program\n" ) ;
         exit ( 130 ) ;
     }
-
 }
-////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * main
@@ -470,7 +376,7 @@ static void signal_handler ( int signal_number )
 int main ( int argc , const char **argv )
 {
     // Our main data storage vessel..
-    RASPIVID_STATE state ;
+    RASPISTILL_STATE state ;
     int exit_code = EX_OK ;
 
     MMAL_STATUS_T status = MMAL_SUCCESS ;
@@ -478,11 +384,13 @@ int main ( int argc , const char **argv )
     MMAL_PORT_T *camera_video_port = NULL ;
     MMAL_PORT_T *camera_still_port = NULL ;
     MMAL_PORT_T *preview_input_port = NULL ;
+    MMAL_PORT_T *encoder_input_port = NULL ;
+    MMAL_PORT_T *encoder_output_port = NULL ;
 
     bcm_host_init ( ) ;
 
     // Register our application with the logging system
-    vcos_log_register ( "RaspiVid" , VCOS_LOG_CATEGORY ) ;
+    vcos_log_register ( "RaspiStill" , VCOS_LOG_CATEGORY ) ;
 
     signal ( SIGINT , signal_handler ) ;
 
@@ -491,8 +399,12 @@ int main ( int argc , const char **argv )
 
     default_status ( &state ) ;
 
-    // OK, we have a nice set of parameters. Now set up our componentss
+    raspitex_init ( &state.raspitex_state ) ;
+
+    // OK, we have a nice set of parameters. Now set up our components
     // We have three components. Camera, Preview and encoder.
+    // Camera and encoder are different in stills/video, but preview
+    // is the same so handed off to a separate module
 
     if ( ( status = create_camera_component ( &state ) ) != MMAL_SUCCESS )
     {
@@ -505,37 +417,26 @@ int main ( int argc , const char **argv )
         camera_video_port = state.camera_component->output[MMAL_CAMERA_VIDEO_PORT] ;
         camera_still_port = state.camera_component->output[MMAL_CAMERA_CAPTURE_PORT] ;
 
-        camera_video_port->userdata = ( struct MMAL_PORT_USERDATA_T * ) &state ;
+        VCOS_STATUS_T vcos_status ;
 
-        // Send all the buffers to the video port
-
-        int num = mmal_queue_length ( state.video_pool->queue ) ;
-        int q ;
-        for ( q = 0 ; q < num ; q ++ )
-        {
-            MMAL_BUFFER_HEADER_T *buffer = mmal_queue_get ( state.video_pool->queue ) ;
-
-            if ( ! buffer )
-                vcos_log_error ( "Unable to get a required buffer %d from pool queue" , q ) ;
-
-            if ( mmal_port_send_buffer ( camera_video_port , buffer ) != MMAL_SUCCESS )
-                vcos_log_error ( "Unable to send a buffer to video output port (%d)" , q ) ;
-        }
-
-        // start capture
-        if ( mmal_port_parameter_set_boolean ( camera_video_port , MMAL_PARAMETER_CAPTURE , 1 ) != MMAL_SUCCESS )
-        {
+        /* If GL preview is requested then start the GL threads */
+        if ( ( raspitex_start ( &state.raspitex_state ) != 0 ) )
             goto error ;
+
+        while ( 1 )
+        {
+            vcos_sleep ( 10000 ) ;
         }
 
-        vcos_sleep ( 5000 ) ;
 
 error:
 
         mmal_status_to_int ( status ) ;
 
+        raspitex_stop ( &state.raspitex_state ) ;
+        raspitex_destroy ( &state.raspitex_state ) ;
+
         // Disable all our ports that are not handled by connections
-        check_disable_port ( camera_still_port ) ;
         check_disable_port ( camera_video_port ) ;
 
         /* Disable components */
@@ -550,4 +451,4 @@ error:
 
     return exit_code ;
 }
-////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
