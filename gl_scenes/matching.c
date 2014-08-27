@@ -55,28 +55,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     "#extension GL_OES_EGL_image_external : require\n" \
     "uniform samplerExternalOES tex;\n" \
     "varying vec2 texcoord;\n" \
-    "uniform vec2 tex_unit;\n" \
     "void main(void) {\n" \
-    "    float x = texcoord.x;\n" \
-    "    float y = texcoord.y;\n" \
-    "    float x1 = x - tex_unit.x;\n" \
-    "    float y1 = y - tex_unit.y;\n" \
-    "    float x2 = x + tex_unit.x;\n" \
-    "    float y2 = y + tex_unit.y;\n" \
-    "    vec4 p0 = texture2D(tex, vec2(x1, y1));\n" \
-    "    vec4 p1 = texture2D(tex, vec2(x, y1));\n" \
-    "    vec4 p2 = texture2D(tex, vec2(x2, y1));\n" \
-    "    vec4 p3 = texture2D(tex, vec2(x1, y));\n" \
-    "    /* vec4 p4 = texture2D(tex, vec2(x, y)); */\n" \
-    "    vec4 p5 = texture2D(tex, vec2(x2, y));\n" \
-    "    vec4 p6 = texture2D(tex, vec2(x1, y2));\n" \
-    "    vec4 p7 = texture2D(tex, vec2(x, y2));\n" \
-    "    vec4 p8 = texture2D(tex, vec2(x2, y2));\n" \
-    "\n" \
-    "    vec4 v =  p0 + (2.0 * p1) + p3 -p6 + (-2.0 * p7) + -p8;\n" \
-    "    vec4 h =  p0 + (2.0 * p3) + p7 -p2 + (-2.0 * p5) + -p8;\n" \
-    "    gl_FragColor = sqrt(h*h + v*v);\n" \
-    "    gl_FragColor.a = 1.0;\n" \
+    "    vec4 rgba_col = texture2D(tex, texcoord);\n" \
+    "    float temp = max(rgba_col.r,rgba_col.g);\n" \
+    "    float v = max(rgba_col.b,temp);\n" \
+    "    float temp2 = min(rgba_col.r,rgba_col.g);\n" \
+    "    float temp3 = min(rgba_col.b,temp2);\n" \
+    "    float s = 0.0;\n" \
+    "    float temp4 = v - temp3;\n" \
+    "    float h = 0.0;\n" \
+    "    if(v != 0.0)\n" \
+    "    {\n" \
+    "           s = temp4 / v;\n" \
+    "    }\n" \
+    "    if(v  == rgba_col.r)\n" \
+    "    {\n" \
+    "           h = 60.0 * abs(rgba_col.g - rgba_col.b)/temp4 ;\n" \
+    "    }\n" \
+    "    else if(v  == rgba_col.g)\n" \
+    "    {\n" \
+    "           h = 120.0 + 60.0 * abs(rgba_col.b - rgba_col.r)/temp4 ;\n" \
+    "    }\n" \
+    "    else if(v  == rgba_col.b)\n" \
+    "    {\n" \
+    "           h = 240.0 + 60.0 * abs(rgba_col.r - rgba_col.g)/temp4 ;\n" \
+    "    }\n" \
+    "    gl_FragColor = vec4(h/360.0, s, v, 1.0);\n" \
     "}\n"
 
 static GLfloat quad_varray[] = {
@@ -90,7 +94,7 @@ static RASPITEXUTIL_SHADER_PROGRAM_T matching_shader = {
                                                         .vertex_source = MATCHING_VSHADER_SOURCE ,
                                                         .fragment_source = MATCHING_FSHADER_SOURCE ,
                                                         .uniform_names =
-    {"tex" , "tex_unit" } ,
+    {"tex" } ,
                                                         .attribute_names =
     {"vertex" } ,
 } ;
@@ -117,8 +121,8 @@ static int shader_set_uniforms ( RASPITEXUTIL_SHADER_PROGRAM_T *shader ,
     GLCHK ( glUniform1i ( shader->uniform_locations[0] , 0 ) ) ; // Texture unit
 
     /* Dimensions of a single pixel in texture co-ordinates */
-    GLCHK ( glUniform2f ( shader->uniform_locations[1] ,
-                          1.0 / ( float ) width , 1.0 / ( float ) height ) ) ;
+    //    GLCHK ( glUniform2f ( shader->uniform_locations[1] ,
+    //                          1.0 / ( float ) width , 1.0 / ( float ) height ) ) ;
 
     /* Enable attrib 0 as vertex array */
     GLCHK ( glEnableVertexAttribArray ( shader->attribute_locations[0] ) ) ;
@@ -159,7 +163,7 @@ end:
     return rc ;
 }
 
-/* Redraws the scene with the latest luma buffer.
+/* Redraws the scene with the latest buffer.
  *
  * @param raspitex_state A pointer to the GL preview state.
  * @return Zero if successful.
@@ -171,7 +175,7 @@ static int matching_redraw ( RASPITEX_STATE* state )
 
     /* Bind the Y plane texture */
     GLCHK ( glActiveTexture ( GL_TEXTURE0 ) ) ;
-    GLCHK ( glBindTexture ( GL_TEXTURE_EXTERNAL_OES , state->y_texture ) ) ;
+    GLCHK ( glBindTexture ( GL_TEXTURE_EXTERNAL_OES , state->texture ) ) ;
     GLCHK ( glBindBuffer ( GL_ARRAY_BUFFER , quad_vbo ) ) ;
     GLCHK ( glEnableVertexAttribArray ( matching_shader.attribute_locations[0] ) ) ;
     GLCHK ( glVertexAttribPointer ( matching_shader.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
@@ -184,6 +188,6 @@ int matching_open ( RASPITEX_STATE *state )
 {
     state->ops.gl_init = matching_init ;
     state->ops.redraw = matching_redraw ;
-    state->ops.update_y_texture = raspitexutil_update_y_texture ;
+    state->ops.update_texture = raspitexutil_update_texture ;
     return 0 ;
 }

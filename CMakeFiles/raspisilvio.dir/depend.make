@@ -393,7 +393,7 @@ CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.o: /opt/vc/userland-master/interface/v
 CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.o: /opt/vc/userland-master/interface/vmcs_host/linux/vchost_config.h
 
 CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o: gl_scenes/matching.c
-CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o: gl_scenes/sobel.h
+CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o: gl_scenes/matching.h
 CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o: /opt/vc/include/EGL/egl.h
 CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o: /opt/vc/include/EGL/eglext.h
 CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o: /opt/vc/include/EGL/eglext_android.h

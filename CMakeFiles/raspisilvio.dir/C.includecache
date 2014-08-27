@@ -7,8 +7,8 @@
 #IncludeRegexTransform: 
 
 /home/pi/Projects/raspisilvio/gl_scenes/matching.c
-sobel.h
-/home/pi/Projects/raspisilvio/gl_scenes/sobel.h
+matching.h
+/home/pi/Projects/raspisilvio/gl_scenes/matching.h
 RaspiTex.h
 /home/pi/Projects/raspisilvio/gl_scenes/RaspiTex.h
 RaspiTexUtil.h
@@ -20,7 +20,7 @@ EGL/egl.h
 EGL/eglext.h
 -
 
-/home/pi/Projects/raspisilvio/gl_scenes/sobel.h
+/home/pi/Projects/raspisilvio/gl_scenes/matching.h
 RaspiTex.h
 /home/pi/Projects/raspisilvio/gl_scenes/RaspiTex.h
 
