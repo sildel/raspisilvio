@@ -12,6 +12,7 @@ FILE(REMOVE_RECURSE
   "CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.o"
   "CMakeFiles/raspisilvio.dir/gl_scenes/square.c.o"
   "CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o"
+  "CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o"
   "raspisilvio.pdb"
   "raspisilvio"
 )

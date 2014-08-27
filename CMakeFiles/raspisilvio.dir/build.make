@@ -348,6 +348,29 @@ CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o.provides: CMakeFiles/raspisilvio
 
 CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o.provides.build: CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o
 
+CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o: CMakeFiles/raspisilvio.dir/flags.make
+CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o: gl_scenes/matching.c
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/pi/Projects/raspisilvio/CMakeFiles $(CMAKE_PROGRESS_14)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building C object CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -o CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o   -c /home/pi/Projects/raspisilvio/gl_scenes/matching.c
+
+CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.i"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -E /home/pi/Projects/raspisilvio/gl_scenes/matching.c > CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.i
+
+CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.s"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -S /home/pi/Projects/raspisilvio/gl_scenes/matching.c -o CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.s
+
+CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o.requires:
+.PHONY : CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o.requires
+
+CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o.provides: CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o.requires
+	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o.provides.build
+.PHONY : CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o.provides
+
+CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o.provides.build: CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o
+
 # Object files for target raspisilvio
 raspisilvio_OBJECTS = \
 "CMakeFiles/raspisilvio.dir/RaspiCamControl.c.o" \
@@ -362,7 +385,8 @@ raspisilvio_OBJECTS = \
 "CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.o" \
 "CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.o" \
 "CMakeFiles/raspisilvio.dir/gl_scenes/square.c.o" \
-"CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o"
+"CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o" \
+"CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o"
 
 # External object files for target raspisilvio
 raspisilvio_EXTERNAL_OBJECTS =
@@ -380,6 +404,7 @@ raspisilvio: CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.o
 raspisilvio: CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.o
 raspisilvio: CMakeFiles/raspisilvio.dir/gl_scenes/square.c.o
 raspisilvio: CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o
+raspisilvio: CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o
 raspisilvio: CMakeFiles/raspisilvio.dir/build.make
 raspisilvio: /opt/vc/lib/libmmal_core.so
 raspisilvio: /opt/vc/lib/libmmal_util.so
@@ -409,6 +434,7 @@ CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/gl_scenes/yuv.c.
 CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/gl_scenes/sobel.c.o.requires
 CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/gl_scenes/square.c.o.requires
 CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/gl_scenes/teapot.c.o.requires
+CMakeFiles/raspisilvio.dir/requires: CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o.requires
 .PHONY : CMakeFiles/raspisilvio.dir/requires
 
 CMakeFiles/raspisilvio.dir/clean:

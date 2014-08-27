@@ -11,6 +11,8 @@
         <df name="CompilerIdCXX">
           <in>CMakeCXXCompilerId.cpp</in>
         </df>
+        <df name="Progress">
+        </df>
         <df name="raspisilvio.dir">
           <df name="gl_scenes">
           </df>
@@ -18,6 +20,8 @@
       </df>
       <df name="gl_scenes">
         <in>cube_texture_and_coords.h</in>
+        <in>matching.c</in>
+        <in>matching.h</in>
         <in>mirror.c</in>
         <in>mirror.h</in>
         <in>models.c</in>
