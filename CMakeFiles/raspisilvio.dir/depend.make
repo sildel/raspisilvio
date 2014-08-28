@@ -196,6 +196,7 @@ CMakeFiles/raspisilvio.dir/RaspiTex.c.o: RaspiCLI.h
 CMakeFiles/raspisilvio.dir/RaspiTex.c.o: RaspiTex.c
 CMakeFiles/raspisilvio.dir/RaspiTex.c.o: RaspiTex.h
 CMakeFiles/raspisilvio.dir/RaspiTex.c.o: RaspiTexUtil.h
+CMakeFiles/raspisilvio.dir/RaspiTex.c.o: gl_scenes/matching.h
 CMakeFiles/raspisilvio.dir/RaspiTex.c.o: gl_scenes/mirror.h
 CMakeFiles/raspisilvio.dir/RaspiTex.c.o: gl_scenes/sobel.h
 CMakeFiles/raspisilvio.dir/RaspiTex.c.o: gl_scenes/square.h
