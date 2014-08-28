@@ -1015,7 +1015,19 @@ CMakeFiles/raspisilvio.dir/main.c.o
  /home/pi/Projects/raspisilvio/RaspiCLI.h
  /home/pi/Projects/raspisilvio/RaspiCamControl.h
  /home/pi/Projects/raspisilvio/RaspiPreview.h
+ /home/pi/Projects/raspisilvio/RaspiTex.h
+ /home/pi/Projects/raspisilvio/gl_scenes/matching.h
  /home/pi/Projects/raspisilvio/main.c
+ /opt/vc/include/EGL/../KHR/khrplatform.h
+ /opt/vc/include/EGL/egl.h
+ /opt/vc/include/EGL/eglext.h
+ /opt/vc/include/EGL/eglext_android.h
+ /opt/vc/include/EGL/eglext_brcm.h
+ /opt/vc/include/EGL/eglext_nvidia.h
+ /opt/vc/include/EGL/eglplatform.h
+ /opt/vc/include/GLES/gl.h
+ /opt/vc/include/GLES/glext.h
+ /opt/vc/include/GLES/glplatform.h
  /opt/vc/include/bcm_host.h
  /opt/vc/include/interface/mmal/mmal.h
  /opt/vc/include/interface/mmal/mmal_buffer.h
@@ -1101,6 +1113,8 @@ CMakeFiles/raspisilvio.dir/main.c.o
  /opt/vc/include/interface/vmcs_host/vc_tvservice_defs.h
  /opt/vc/include/interface/vmcs_host/vcgencmd.h
  /opt/vc/include/vcinclude/common.h
+ /opt/vc/userland-master/interface/khronos/common/khrn_client_mangle.h
+ /opt/vc/userland-master/interface/khronos/include/EGL/eglext_brcm.h
  /opt/vc/userland-master/interface/vcos/pthreads/vcos_futex_mutex.h
  /opt/vc/userland-master/interface/vcos/pthreads/vcos_platform.h
  /opt/vc/userland-master/interface/vcos/pthreads/vcos_platform_types.h

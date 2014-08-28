@@ -57,6 +57,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MATCHING_FSHADER_SOURCE \
     "#extension GL_OES_EGL_image_external : require\n" \
     "uniform samplerExternalOES tex;\n" \
+    "uniform samplerExternalOES tex;\n" \
     "varying vec2 texcoord;\n" \
     "void main(void) {\n" \
     "    vec4 rgba_col = texture2D(tex, texcoord);\n" \
@@ -106,6 +107,13 @@ static GLfloat quad_varray[] = {
 
 static GLuint quad_vbo ;
 
+char *SRCfromfile = NULL ;
+
+float h_min = 0.0f , h_max = 25.0f ;
+float s_min = 0.0f , s_max = 255.0f ;
+float v_min = 0.0f , v_max = 255.0f ;
+int stop_flag = 0 ;
+
 static RASPITEXUTIL_SHADER_PROGRAM_T matching_shader_preview = {
                                                                 .vertex_source = MATCHING_VSHADER_SOURCE_PREVIEW ,
                                                                 .fragment_source = MATCHING_FSHADER_SOURCE_PREVIEW ,
@@ -117,9 +125,9 @@ static RASPITEXUTIL_SHADER_PROGRAM_T matching_shader_preview = {
 
 static RASPITEXUTIL_SHADER_PROGRAM_T matching_shader = {
                                                         .vertex_source = MATCHING_VSHADER_SOURCE_PREVIEW ,
-                                                        .fragment_source = MATCHING_FSHADER_SOURCE ,
+                                                        .fragment_source = "" ,
                                                         .uniform_names =
-    {"tex" } ,
+    {"tex" , "lower" , "upper" } ,
                                                         .attribute_names =
     {"vertex" , "top_left" } ,
 } ;
@@ -175,6 +183,19 @@ static int matching_init ( RASPITEX_STATE *raspitex_state )
     if ( rc != 0 )
         goto end ;
 
+    assert ( ! SRCfromfile ) ;
+    FILE* f = fopen ( "gl_scenes/matchingFS.glsl" , "rb" ) ;
+    assert ( f ) ;
+    fseek ( f , 0 , SEEK_END ) ;
+    int sz = ftell ( f ) ;
+    fseek ( f , 0 , SEEK_SET ) ;
+    SRCfromfile = malloc ( sz + 1 ) ;
+    fread ( SRCfromfile , 1 , sz , f ) ;
+    SRCfromfile[sz] = 0 ; //null terminate it!
+    fclose ( f ) ;
+
+    matching_shader.fragment_source = SRCfromfile ;
+
     rc = raspitexutil_build_shader_program ( &matching_shader ) ;
     if ( rc != 0 )
         goto end ;
@@ -197,7 +218,7 @@ static int matching_redraw ( RASPITEX_STATE* state )
 {
     glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
     GLCHK ( glUseProgram ( matching_shader_preview.program ) ) ;
-    GLCHK ( glUniform1i ( matching_shader_preview.uniform_locations[0] , 0 ) ) ; // Texture unit
+    GLCHK ( glUniform1i ( matching_shader_preview.uniform_locations[0] , 0 ) ) ; // Texture unit    
 
     GLCHK ( glActiveTexture ( GL_TEXTURE0 ) ) ;
     GLCHK ( glBindTexture ( GL_TEXTURE_EXTERNAL_OES , state->texture ) ) ;
@@ -209,6 +230,8 @@ static int matching_redraw ( RASPITEX_STATE* state )
 
     GLCHK ( glUseProgram ( matching_shader.program ) ) ;
     GLCHK ( glUniform1i ( matching_shader.uniform_locations[0] , 0 ) ) ; // Texture unit
+    GLCHK ( glUniform3f ( matching_shader.uniform_locations[1] , h_min , s_min / 255.0f , v_min / 255.0f ) ) ;
+    GLCHK ( glUniform3f ( matching_shader.uniform_locations[2] , h_max , s_max / 255.0f , v_max / 255.0f ) ) ;
 
     GLCHK ( glActiveTexture ( GL_TEXTURE0 ) ) ;
     GLCHK ( glBindTexture ( GL_TEXTURE_EXTERNAL_OES , state->texture ) ) ;
@@ -217,6 +240,11 @@ static int matching_redraw ( RASPITEX_STATE* state )
     GLCHK ( glVertexAttribPointer ( matching_shader.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
     GLCHK ( glVertexAttrib2f ( matching_shader.attribute_locations[1] , 0.0f , 1.0f ) ) ;
     GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
+
+    if ( stop_flag )
+    {
+        state->ops.update_texture = NULL ;
+    }
 
     return 0 ;
 }

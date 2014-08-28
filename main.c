@@ -29,6 +29,8 @@
 #include "RaspiCLI.h"
 #include "RaspiTex.h"
 
+#include "gl_scenes/matching.h"
+
 #include <semaphore.h>
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Camera number to use - we only have one camera, indexed from 0.
@@ -320,19 +322,6 @@ static MMAL_STATUS_T connect_ports ( MMAL_PORT_T *output_port , MMAL_PORT_T *inp
 
     return status ;
 }
-
-/**
- * Allocates and generates a filename based on the
- * user-supplied pattern and the frame number.
- * On successful return, finalName and tempName point to malloc()ed strings
- * which must be freed externally.  (On failure, returns nulls that
- * don't need free()ing.)
- *
- * @param finalName pointer receives an
- * @param pattern sprintf pattern with %d to be replaced by frame
- * @param frame for timelapse, the frame number
- * @return Returns a MMAL_STATUS_T giving result of operation
- */
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -423,11 +412,68 @@ int main ( int argc , const char **argv )
         if ( ( raspitex_start ( &state.raspitex_state ) != 0 ) )
             goto error ;
 
+        int a = 0 ;
+
         while ( 1 )
         {
-            vcos_sleep ( 10000 ) ;
-        }
+            vcos_sleep ( 1000 ) ;
 
+            int ch = getchar ( ) ;
+            switch ( ch )
+            {
+                case 'q':
+                case 'Q':
+                    stop_flag = 1 ;
+                    break ;
+                case 'f':
+                case 'F':
+                    a = ! a ;
+                    break ;
+                case 'H':
+                    h_max += ( a ) ? 10.0f : 1.0f ;
+                    break ;
+                case 'J':
+                    h_max -= ( a ) ? 10.0f : 1.0f ;
+                    break ;
+                case 'h':
+                    h_min += ( a ) ? 10.0f : 1.0f ;
+                    break ;
+                case 'j':
+                    h_min -= ( a ) ? 10.0f : 1.0f ;
+                    break ;
+
+                case 'S':
+                    s_max += ( a ) ? 10.0f : 1.0f ;
+                    break ;
+                case 'D':
+                    s_max -= ( a ) ? 10.0f : 1.0f ;
+                    break ;
+                case 's':
+                    s_min += ( a ) ? 10.0f : 1.0f ;
+                    break ;
+                case 'd':
+                    s_min -= ( a ) ? 10.0f : 1.0f ;
+                    break ;
+
+                case 'V':
+                    v_max += ( a ) ? 10.0f : 1.0f ;
+                    break ;
+                case 'B':
+                    v_max -= ( a ) ? 10.0f : 1.0f ;
+                    break ;
+                case 'v':
+                    v_min += ( a ) ? 10.0f : 1.0f ;
+                    break ;
+                case 'b':
+                    v_min -= ( a ) ? 10.0f : 1.0f ;
+                    break ;
+            }
+            printf ( "\f" ) ;
+            printf ( "%6s%6s%6s\n" , " " , "MIN" , "MAX" ) ;
+            printf ( "%6s%6.1f%6.1f\n" , "H" , h_min , h_max ) ;
+            printf ( "%6s%6.1f%6.1f\n" , "S" , s_min , s_max ) ;
+            printf ( "%6s%6.1f%6.1f\n" , "V" , v_min , v_max ) ;
+        }
 
 error:
 
