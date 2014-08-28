@@ -109,9 +109,9 @@ static GLuint quad_vbo ;
 
 char *SRCfromfile = NULL ;
 
-float h_min = 0.0f , h_max = 25.0f ;
-float s_min = 0.0f , s_max = 255.0f ;
-float v_min = 0.0f , v_max = 255.0f ;
+float h_min = 240.0f , h_max = 285.0f ;
+float s_min = 40.0f , s_max = 153.0f ;
+float v_min = 41.0f , v_max = 100.0f ;
 int stop_flag = 0 ;
 
 static RASPITEXUTIL_SHADER_PROGRAM_T matching_shader_preview = {
