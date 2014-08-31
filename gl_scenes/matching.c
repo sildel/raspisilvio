@@ -54,44 +54,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     "   gl_Position = vec4(top_left + 0.5 * (vertex + vec2(1.0, - 1.0)), 0.0, 1.0);\n" \
     "}\n"
 
-//#define MATCHING_FSHADER_SOURCE \
-//    "#extension GL_OES_EGL_image_external : require\n" \
-//    "uniform samplerExternalOES tex;\n" \
-//    "uniform samplerExternalOES tex;\n" \
-//    "varying vec2 texcoord;\n" \
-//    "void main(void) {\n" \
-//    "    vec4 rgba_col = texture2D(tex, texcoord);\n" \
-//    "    vec4 thresh_col = vec4(0.0,0.0,0.0,1.0);\n" \
-//    "    float temp = max(rgba_col.r,rgba_col.g);\n" \
-//    "    float v = max(rgba_col.b,temp);\n" \
-//    "    float temp2 = min(rgba_col.r,rgba_col.g);\n" \
-//    "    float temp3 = min(rgba_col.b,temp2);\n" \
-//    "    float s = 0.0;\n" \
-//    "    float temp4 = v - temp3;\n" \
-//    "    float h = 0.0;\n" \
-//    "    if(v != 0.0)\n" \
-//    "    {\n" \
-//    "           s = temp4 / v;\n" \
-//    "    }\n" \
-//    "    if(v == rgba_col.r)\n" \
-//    "    {\n" \
-//    "           h = 60.0 * abs(rgba_col.g - rgba_col.b)/temp4 ;\n" \
-//    "    }\n" \
-//    "    else if(v  == rgba_col.g)\n" \
-//    "    {\n" \
-//    "           h = 120.0 + 60.0 * abs(rgba_col.b - rgba_col.r)/temp4 ;\n" \
-//    "    }\n" \
-//    "    else if(v == rgba_col.b)\n" \
-//    "    {\n" \
-//    "           h = 240.0 + 60.0 * abs(rgba_col.r - rgba_col.g)/temp4 ;\n" \
-//    "    }\n" \
-//    "    if((h > 165.0) && (h < 180.0) && (s > 60.0/255.0) && (s < 130.0/255.0) && (v > 50.0/255.0) && (v < 105.0/255.0) )\n" \
-//    "    {\n" \
-//    "           thresh_col = vec4(1.0) ;\n" \
-//    "    }\n" \
-//    "    gl_FragColor = thresh_col;\n" \
-//    "}\n"
-
 #define MATCHING_FSHADER_SOURCE_PREVIEW \
     "#extension GL_OES_EGL_image_external : require\n" \
     "uniform samplerExternalOES tex;\n" \
@@ -108,6 +70,7 @@ static GLfloat quad_varray[] = {
 static GLuint quad_vbo ;
 
 char *SRCfromfile = NULL ;
+char *SRCfromfile2 = NULL ;
 
 static RASPITEXUTIL_SHADER_PROGRAM_T matching_shader_preview = {
                                                                 .vertex_source = MATCHING_VSHADER_SOURCE_PREVIEW ,
@@ -119,6 +82,15 @@ static RASPITEXUTIL_SHADER_PROGRAM_T matching_shader_preview = {
 } ;
 
 static RASPITEXUTIL_SHADER_PROGRAM_T matching_shader = {
+                                                        .vertex_source = MATCHING_VSHADER_SOURCE_PREVIEW ,
+                                                        .fragment_source = "" ,
+                                                        .uniform_names =
+    {"tex" , "tex_unit" } ,
+                                                        .attribute_names =
+    {"vertex" , "top_left" } ,
+} ;
+
+static RASPITEXUTIL_SHADER_PROGRAM_T matching_blur_shader = {
                                                         .vertex_source = MATCHING_VSHADER_SOURCE_PREVIEW ,
                                                         .fragment_source = "" ,
                                                         .uniform_names =
@@ -194,6 +166,23 @@ static int matching_init ( RASPITEX_STATE *raspitex_state )
     rc = raspitexutil_build_shader_program ( &matching_shader ) ;
     if ( rc != 0 )
         goto end ;
+    
+    assert ( ! SRCfromfile2 ) ;
+    f = fopen ( "gl_scenes/blurFS.glsl" , "rb" ) ;
+    assert ( f ) ;
+    fseek ( f , 0 , SEEK_END ) ;
+    sz = ftell ( f ) ;
+    fseek ( f , 0 , SEEK_SET ) ;
+    SRCfromfile2 = malloc ( sz + 1 ) ;
+    fread ( SRCfromfile2 , 1 , sz , f ) ;
+    SRCfromfile2[sz] = 0 ; //null terminate it!
+    fclose ( f ) ;
+    
+    matching_blur_shader.fragment_source = SRCfromfile2 ;
+
+    rc = raspitexutil_build_shader_program ( &matching_blur_shader ) ;
+    if ( rc != 0 )
+        goto end ;
 
     GLCHK ( glGenBuffers ( 1 , &quad_vbo ) ) ;
     GLCHK ( glBindBuffer ( GL_ARRAY_BUFFER , quad_vbo ) ) ;
@@ -234,6 +223,19 @@ static int matching_redraw ( RASPITEX_STATE* state )
     GLCHK ( glEnableVertexAttribArray ( matching_shader.attribute_locations[0] ) ) ;
     GLCHK ( glVertexAttribPointer ( matching_shader.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
     GLCHK ( glVertexAttrib2f ( matching_shader.attribute_locations[1] , 0.0f , 1.0f ) ) ;
+    GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
+    
+    GLCHK ( glUseProgram ( matching_blur_shader.program ) ) ;
+    GLCHK ( glUniform1i ( matching_blur_shader.uniform_locations[0] , 0 ) ) ; // Texture unit
+    /* Dimensions of a single pixel in texture co-ordinates */
+    GLCHK ( glUniform2f ( matching_blur_shader.uniform_locations[1] , 2.0 / ( float ) state->width , 2.0 / ( float ) state->height ) ) ;
+
+    GLCHK ( glActiveTexture ( GL_TEXTURE0 ) ) ;
+    GLCHK ( glBindTexture ( GL_TEXTURE_EXTERNAL_OES , state->texture ) ) ;
+    GLCHK ( glBindBuffer ( GL_ARRAY_BUFFER , quad_vbo ) ) ;
+    GLCHK ( glEnableVertexAttribArray ( matching_blur_shader.attribute_locations[0] ) ) ;
+    GLCHK ( glVertexAttribPointer ( matching_blur_shader.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
+    GLCHK ( glVertexAttrib2f ( matching_blur_shader.attribute_locations[1] , 0.0f , 0.0f ) ) ;
     GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
 
     return 0 ;
