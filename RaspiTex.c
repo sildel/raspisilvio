@@ -90,8 +90,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * See also: http://www.khronos.org/registry/gles/extensions/OES/OES_EGL_image_external.txt
  */
 
-#define DEFAULT_WIDTH   1280
-#define DEFAULT_HEIGHT  960
+#define DEFAULT_WIDTH   640
+#define DEFAULT_HEIGHT  480
 
 #define CommandGLScene   1
 #define CommandGLWin     2

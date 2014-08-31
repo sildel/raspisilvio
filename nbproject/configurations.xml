@@ -3,12 +3,20 @@
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <df root="." name="raspisilvio">
       <df name="gl_scenes">
+        <in>cube_texture_and_coords.h</in>
+        <in>matching.c</in>
+        <in>matching.h</in>
+        <in>mirror.c</in>
         <in>mirror.h</in>
         <in>models.c</in>
         <in>models.h</in>
+        <in>sobel.c</in>
         <in>sobel.h</in>
+        <in>square.c</in>
         <in>square.h</in>
+        <in>teapot.c</in>
         <in>teapot.h</in>
+        <in>yuv.c</in>
         <in>yuv.h</in>
       </df>
       <in>RaspiCLI.c</in>
@@ -225,6 +233,17 @@
           </incDir>
         </cTool>
       </folder>
+      <item path="gl_scenes/cube_texture_and_coords.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="gl_scenes/matching.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="gl_scenes/matching.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="gl_scenes/mirror.c" ex="false" tool="0" flavor2="0">
+      </item>
       <item path="gl_scenes/mirror.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="gl_scenes/models.c" ex="false" tool="0" flavor2="2">
@@ -233,11 +252,19 @@
       </item>
       <item path="gl_scenes/models.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="gl_scenes/sobel.c" ex="false" tool="0" flavor2="0">
+      </item>
       <item path="gl_scenes/sobel.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="gl_scenes/square.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="gl_scenes/square.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="gl_scenes/teapot.c" ex="false" tool="0" flavor2="0">
+      </item>
       <item path="gl_scenes/teapot.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="gl_scenes/yuv.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="gl_scenes/yuv.h" ex="false" tool="3" flavor2="0">
       </item>

@@ -458,9 +458,20 @@ int main ( int argc , const char **argv )
         if ( ( raspitex_start ( &state.raspitex_state ) != 0 ) )
             goto error ;
 
+        int ch ;
+
         while ( 1 )
         {
-            vcos_sleep ( 10000 ) ;
+            vcos_sleep ( 1000 ) ;
+
+            fflush ( stdin ) ;
+            ch = getchar ( ) ;
+
+            render_id ++ ;
+            if ( render_id >= 3 )
+            {
+                render_id = 0 ;
+            }
         }
 
 error:
