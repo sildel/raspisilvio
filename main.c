@@ -426,67 +426,9 @@ int main ( int argc , const char **argv )
         if ( ( raspitex_start ( &state.raspitex_state ) != 0 ) )
             goto error ;
 
-        int a = 0 ;
-
         while ( 1 )
         {
-            vcos_sleep ( 1000 ) ;
-
-            int ch = getchar ( ) ;
-            switch ( ch )
-            {
-                case 'q':
-                case 'Q':
-                    stop_flag = 1 ;
-                    break ;
-                case 'f':
-                case 'F':
-                    a = ! a ;
-                    break ;
-                case 'H':
-                    h_max += ( a ) ? 10.0f : 1.0f ;
-                    break ;
-                case 'J':
-                    h_max -= ( a ) ? 10.0f : 1.0f ;
-                    break ;
-                case 'h':
-                    h_min += ( a ) ? 10.0f : 1.0f ;
-                    break ;
-                case 'j':
-                    h_min -= ( a ) ? 10.0f : 1.0f ;
-                    break ;
-
-                case 'S':
-                    s_max += ( a ) ? 10.0f : 1.0f ;
-                    break ;
-                case 'D':
-                    s_max -= ( a ) ? 10.0f : 1.0f ;
-                    break ;
-                case 's':
-                    s_min += ( a ) ? 10.0f : 1.0f ;
-                    break ;
-                case 'd':
-                    s_min -= ( a ) ? 10.0f : 1.0f ;
-                    break ;
-
-                case 'V':
-                    v_max += ( a ) ? 10.0f : 1.0f ;
-                    break ;
-                case 'B':
-                    v_max -= ( a ) ? 10.0f : 1.0f ;
-                    break ;
-                case 'v':
-                    v_min += ( a ) ? 10.0f : 1.0f ;
-                    break ;
-                case 'b':
-                    v_min -= ( a ) ? 10.0f : 1.0f ;
-                    break ;
-            }
-            printf ( "\f" ) ;
-            printf ( "%6s%6s%6s\n" , " " , "MIN" , "MAX" ) ;
-            printf ( "%6s%6.1f%6.1f\n" , "H" , h_min , h_max ) ;
-            printf ( "%6s%6.1f%6.1f\n" , "S" , s_min , s_max ) ;
-            printf ( "%6s%6.1f%6.1f\n" , "V" , v_min , v_max ) ;
+            vcos_sleep ( 10000 ) ;
         }
 
 error:

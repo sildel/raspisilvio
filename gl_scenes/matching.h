@@ -33,12 +33,5 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RaspiTex.h"
 
 int matching_open(RASPITEX_STATE *state);
-extern float h_min;
-extern float h_max;
-extern float s_min;
-extern float s_max;
-extern float v_min;
-extern float v_max;
-extern int stop_flag ;
 
 #endif /* MATCHING_H */
