@@ -87,16 +87,30 @@ static void default_status ( RASPISTILL_STATE *state )
         return ;
     }
 
-    state->width = 2592 ;
-    state->height = 1944 ;
+    state->width = 640 ;
+    state->height = 480 ;
 
     state->camera_component = NULL ;
 
     // Setup preview window defaults
     raspipreview_set_defaults ( &state->preview_parameters ) ;
+    //    state->preview_parameters.previewWindow.width = 800 ;
+    //    state->preview_parameters.previewWindow.width = 600 ;
 
     // Set up the camera_parameters to default
     raspicamcontrol_set_defaults ( &state->camera_parameters ) ;
+    //    state->camera_parameters.exposureMode = MMAL_PARAM_EXPOSUREMODE_FIXEDFPS ;
+    //    state->camera_parameters.exposureMode = MMAL_PARAM_EXPOSUREMODE_ ;
+//    state->camera_parameters.exposureMode = MMAL_PARAM_EXPOSUREMODE_OFF ;
+    state->camera_parameters.exposureCompensation = 20 ;
+    //    state->camera_parameters.exposureMeterMode = MMAL_PARAM_EXPOSUREMETERINGMODE_MATRIX ;
+    //    state->camera_parameters.videoStabilisation = 1 ;
+    //    state->camera_parameters.awbMode = MMAL_PARAM_AWBMODE_OFF ;
+    //    state->camera_parameters.awb_gains_b = 1.0f ;
+    //    state->camera_parameters.awb_gains_r = 1.0f ;
+
+
+    state->camera_parameters.hflip = 1 ;
 
     // Set initial GL preview state
     raspitex_set_defaults ( &state->raspitex_state ) ;
