@@ -1,3 +1,4 @@
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /*
 Copyright (c) 2013, Broadcom Europe Ltd
 Copyright (c) 2013, Tim Gover
@@ -26,29 +27,30 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//Modified by
+//Jorge Silvio Delgado Morales
+//silviodelgado70
+///////////////////////////////////////////////////////////////////////////////////////////////////
 #include "matching.h"
 #include "RaspiTex.h"
 #include "RaspiTexUtil.h"
 #include <GLES2/gl2.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
-
-/* \file matching.c 
- */
-
+///////////////////////////////////////////////////////////////////////////////////////////////////
 static GLfloat quad_varray[] = {
                                 - 1.0f , - 1.0f , 1.0f , 1.0f , 1.0f , - 1.0f ,
                                 - 1.0f , 1.0f , 1.0f , 1.0f , - 1.0f , - 1.0f ,
 } ;
-
+///////////////////////////////////////////////////////////////////////////////////////////////////
 static GLuint quad_vbo ;
-
+///////////////////////////////////////////////////////////////////////////////////////////////////
 char *common_vs = NULL ;
 char *simple_fs = NULL ;
 char *blur_fs = NULL ;
 char *gauss_fs = NULL ;
-
+///////////////////////////////////////////////////////////////////////////////////////////////////
 static RASPITEXUTIL_SHADER_PROGRAM_T matching_shader_preview = {
                                                                 .vertex_source = "" ,
                                                                 .fragment_source = "" ,
@@ -57,7 +59,7 @@ static RASPITEXUTIL_SHADER_PROGRAM_T matching_shader_preview = {
                                                                 .attribute_names =
     {"vertex" , "top_left" } ,
 } ;
-
+///////////////////////////////////////////////////////////////////////////////////////////////////
 static RASPITEXUTIL_SHADER_PROGRAM_T matching_shader = {
                                                         .vertex_source = "" ,
                                                         .fragment_source = "" ,
@@ -66,16 +68,16 @@ static RASPITEXUTIL_SHADER_PROGRAM_T matching_shader = {
                                                         .attribute_names =
     {"vertex" , "top_left" } ,
 } ;
-
+///////////////////////////////////////////////////////////////////////////////////////////////////
 static RASPITEXUTIL_SHADER_PROGRAM_T matching_blur_shader = {
-                                                        .vertex_source = "" ,
-                                                        .fragment_source = "" ,
-                                                        .uniform_names =
+                                                             .vertex_source = "" ,
+                                                             .fragment_source = "" ,
+                                                             .uniform_names =
     {"tex" , "tex_unit" } ,
-                                                        .attribute_names =
+                                                             .attribute_names =
     {"vertex" , "top_left" } ,
 } ;
-
+///////////////////////////////////////////////////////////////////////////////////////////////////
 static const EGLint matching_egl_config_attribs[] = {
                                                      EGL_RED_SIZE , 8 ,
                                                      EGL_GREEN_SIZE , 8 ,
@@ -84,6 +86,55 @@ static const EGLint matching_egl_config_attribs[] = {
                                                      EGL_RENDERABLE_TYPE , EGL_OPENGL_ES2_BIT ,
                                                      EGL_NONE
 } ;
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+void LoadShadersFromFiles ( )
+{
+    assert ( ! common_vs ) ;
+    FILE* f = fopen ( "gl_scenes/simple4VS.glsl" , "rb" ) ;
+    assert ( f ) ;
+    fseek ( f , 0 , SEEK_END ) ;
+    int sz = ftell ( f ) ;
+    fseek ( f , 0 , SEEK_SET ) ;
+    common_vs = malloc ( sz + 1 ) ;
+    fread ( common_vs , 1 , sz , f ) ;
+    common_vs[sz] = 0 ; //null terminate it!
+    fclose ( f ) ;
+
+    assert ( ! simple_fs ) ;
+    f = fopen ( "gl_scenes/simpleFS.glsl" , "rb" ) ;
+    assert ( f ) ;
+    fseek ( f , 0 , SEEK_END ) ;
+    sz = ftell ( f ) ;
+    fseek ( f , 0 , SEEK_SET ) ;
+    simple_fs = malloc ( sz + 1 ) ;
+    fread ( simple_fs , 1 , sz , f ) ;
+    simple_fs[sz] = 0 ; //null terminate it!
+    fclose ( f ) ;
+
+    assert ( ! gauss_fs ) ;
+    f = fopen ( "gl_scenes/gaussian5FS.glsl" , "rb" ) ;
+    assert ( f ) ;
+    fseek ( f , 0 , SEEK_END ) ;
+    sz = ftell ( f ) ;
+    fseek ( f , 0 , SEEK_SET ) ;
+    gauss_fs = malloc ( sz + 1 ) ;
+    fread ( gauss_fs , 1 , sz , f ) ;
+    gauss_fs[sz] = 0 ; //null terminate it!
+    fclose ( f ) ;
+
+    assert ( ! blur_fs ) ;
+    f = fopen ( "gl_scenes/blurFS.glsl" , "rb" ) ;
+    assert ( f ) ;
+    fseek ( f , 0 , SEEK_END ) ;
+    sz = ftell ( f ) ;
+    fseek ( f , 0 , SEEK_SET ) ;
+    blur_fs = malloc ( sz + 1 ) ;
+    fread ( blur_fs , 1 , sz , f ) ;
+    blur_fs[sz] = 0 ; //null terminate it!
+    fclose ( f ) ;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Initialisation of shader uniforms.
@@ -105,6 +156,7 @@ static int shader_set_uniforms ( RASPITEXUTIL_SHADER_PROGRAM_T *shader ,
     GLCHK ( glEnableVertexAttribArray ( shader->attribute_locations[0] ) ) ;
     return 0 ;
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Creates the OpenGL ES 2.X context and builds the shaders.
@@ -123,63 +175,21 @@ static int matching_init ( RASPITEX_STATE *raspitex_state )
     if ( rc != 0 )
         goto end ;
     
-    assert ( ! common_vs ) ;
-    FILE* f = fopen ( "gl_scenes/simple4VS.glsl" , "rb" ) ;
-    assert ( f ) ;
-    fseek ( f , 0 , SEEK_END ) ;
-    int sz = ftell ( f ) ;
-    fseek ( f , 0 , SEEK_SET ) ;
-    common_vs = malloc ( sz + 1 ) ;
-    fread ( common_vs , 1 , sz , f ) ;
-    common_vs[sz] = 0 ; //null terminate it!
-    fclose ( f ) ;
-    
-    assert ( ! simple_fs ) ;
-    f = fopen ( "gl_scenes/simpleFS.glsl" , "rb" ) ;
-    assert ( f ) ;
-    fseek ( f , 0 , SEEK_END ) ;
-    sz = ftell ( f ) ;
-    fseek ( f , 0 , SEEK_SET ) ;
-    simple_fs = malloc ( sz + 1 ) ;
-    fread ( simple_fs , 1 , sz , f ) ;
-    simple_fs[sz] = 0 ; //null terminate it!
-    fclose ( f ) ;
-    
-    assert ( ! gauss_fs ) ;
-    f = fopen ( "gl_scenes/gaussian5FS.glsl" , "rb" ) ;
-    assert ( f ) ;
-    fseek ( f , 0 , SEEK_END ) ;
-    sz = ftell ( f ) ;
-    fseek ( f , 0 , SEEK_SET ) ;
-    gauss_fs = malloc ( sz + 1 ) ;
-    fread ( gauss_fs , 1 , sz , f ) ;
-    gauss_fs[sz] = 0 ; //null terminate it!
-    fclose ( f ) ;
-    
-    assert ( ! blur_fs ) ;
-    f = fopen ( "gl_scenes/blurFS.glsl" , "rb" ) ;
-    assert ( f ) ;
-    fseek ( f , 0 , SEEK_END ) ;
-    sz = ftell ( f ) ;
-    fseek ( f , 0 , SEEK_SET ) ;
-    blur_fs = malloc ( sz + 1 ) ;
-    fread ( blur_fs , 1 , sz , f ) ;
-    blur_fs[sz] = 0 ; //null terminate it!
-    fclose ( f ) ;
-    
-    matching_shader_preview.vertex_source = common_vs ;    
+    LoadShadersFromFiles ( );
+
+    matching_shader_preview.vertex_source = common_vs ;
     matching_shader_preview.fragment_source = simple_fs ;
     rc = raspitexutil_build_shader_program ( &matching_shader_preview ) ;
     if ( rc != 0 )
-        goto end ;    
-    
+        goto end ;
+
     matching_shader.vertex_source = common_vs ;
     matching_shader.fragment_source = gauss_fs ;
     rc = raspitexutil_build_shader_program ( &matching_shader ) ;
     if ( rc != 0 )
         goto end ;
-    
-    matching_blur_shader.vertex_source = common_vs ;    
+
+    matching_blur_shader.vertex_source = common_vs ;
     matching_blur_shader.fragment_source = blur_fs ;
     rc = raspitexutil_build_shader_program ( &matching_blur_shader ) ;
     if ( rc != 0 )
@@ -193,6 +203,7 @@ static int matching_init ( RASPITEX_STATE *raspitex_state )
 end:
     return rc ;
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /* Redraws the scene with the latest buffer.
  *
@@ -225,7 +236,7 @@ static int matching_redraw ( RASPITEX_STATE* state )
     GLCHK ( glVertexAttribPointer ( matching_shader.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
     GLCHK ( glVertexAttrib2f ( matching_shader.attribute_locations[1] , 0.0f , 1.0f ) ) ;
     GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
-    
+
     GLCHK ( glUseProgram ( matching_blur_shader.program ) ) ;
     GLCHK ( glUniform1i ( matching_blur_shader.uniform_locations[0] , 0 ) ) ; // Texture unit
     /* Dimensions of a single pixel in texture co-ordinates */
@@ -241,6 +252,7 @@ static int matching_redraw ( RASPITEX_STATE* state )
 
     return 0 ;
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 int matching_open ( RASPITEX_STATE *state )
 {
@@ -249,3 +261,4 @@ int matching_open ( RASPITEX_STATE *state )
     state->ops.update_texture = raspitexutil_update_texture ;
     return 0 ;
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////
