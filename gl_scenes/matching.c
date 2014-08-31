@@ -37,31 +37,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* \file matching.c 
  */
 
-#define MATCHING_VSHADER_SOURCE \
-    "attribute vec2 vertex;\n" \
-    "varying vec2 texcoord;\n" \
-    "void main(void) {\n" \
-    "   texcoord = 0.5 * (vertex + 1.0);\n" \
-    "   gl_Position = vec4(vertex, 0.0, 1.0);\n" \
-    "}\n"
-
-#define MATCHING_VSHADER_SOURCE_PREVIEW \
-    "attribute vec2 vertex;\n" \
-    "attribute vec2 top_left;\n"\
-    "varying vec2 texcoord;\n" \
-    "void main(void) {\n" \
-    "   texcoord = 0.5 * (vertex + 1.0);\n" \
-    "   gl_Position = vec4(top_left + 0.5 * (vertex + vec2(1.0, - 1.0)), 0.0, 1.0);\n" \
-    "}\n"
-
-#define MATCHING_FSHADER_SOURCE_PREVIEW \
-    "#extension GL_OES_EGL_image_external : require\n" \
-    "uniform samplerExternalOES tex;\n" \
-    "varying vec2 texcoord;\n" \
-    "void main(void) {\n" \
-    "    gl_FragColor = texture2D(tex, texcoord);\n" \
-    "}\n"
-
 static GLfloat quad_varray[] = {
                                 - 1.0f , - 1.0f , 1.0f , 1.0f , 1.0f , - 1.0f ,
                                 - 1.0f , 1.0f , 1.0f , 1.0f , - 1.0f , - 1.0f ,
@@ -69,12 +44,14 @@ static GLfloat quad_varray[] = {
 
 static GLuint quad_vbo ;
 
-char *SRCfromfile = NULL ;
-char *SRCfromfile2 = NULL ;
+char *common_vs = NULL ;
+char *simple_fs = NULL ;
+char *blur_fs = NULL ;
+char *gauss_fs = NULL ;
 
 static RASPITEXUTIL_SHADER_PROGRAM_T matching_shader_preview = {
-                                                                .vertex_source = MATCHING_VSHADER_SOURCE_PREVIEW ,
-                                                                .fragment_source = MATCHING_FSHADER_SOURCE_PREVIEW ,
+                                                                .vertex_source = "" ,
+                                                                .fragment_source = "" ,
                                                                 .uniform_names =
     {"tex" } ,
                                                                 .attribute_names =
@@ -82,7 +59,7 @@ static RASPITEXUTIL_SHADER_PROGRAM_T matching_shader_preview = {
 } ;
 
 static RASPITEXUTIL_SHADER_PROGRAM_T matching_shader = {
-                                                        .vertex_source = MATCHING_VSHADER_SOURCE_PREVIEW ,
+                                                        .vertex_source = "" ,
                                                         .fragment_source = "" ,
                                                         .uniform_names =
     {"tex" , "tex_unit" } ,
@@ -91,7 +68,7 @@ static RASPITEXUTIL_SHADER_PROGRAM_T matching_shader = {
 } ;
 
 static RASPITEXUTIL_SHADER_PROGRAM_T matching_blur_shader = {
-                                                        .vertex_source = MATCHING_VSHADER_SOURCE_PREVIEW ,
+                                                        .vertex_source = "" ,
                                                         .fragment_source = "" ,
                                                         .uniform_names =
     {"tex" , "tex_unit" } ,
@@ -145,41 +122,65 @@ static int matching_init ( RASPITEX_STATE *raspitex_state )
     rc = raspitexutil_gl_init_2_0 ( raspitex_state ) ;
     if ( rc != 0 )
         goto end ;
-
-    rc = raspitexutil_build_shader_program ( &matching_shader_preview ) ;
-    if ( rc != 0 )
-        goto end ;
-
-    assert ( ! SRCfromfile ) ;
-    FILE* f = fopen ( "gl_scenes/gaussian5FS.glsl" , "rb" ) ;
+    
+    assert ( ! common_vs ) ;
+    FILE* f = fopen ( "gl_scenes/simple4VS.glsl" , "rb" ) ;
     assert ( f ) ;
     fseek ( f , 0 , SEEK_END ) ;
     int sz = ftell ( f ) ;
     fseek ( f , 0 , SEEK_SET ) ;
-    SRCfromfile = malloc ( sz + 1 ) ;
-    fread ( SRCfromfile , 1 , sz , f ) ;
-    SRCfromfile[sz] = 0 ; //null terminate it!
+    common_vs = malloc ( sz + 1 ) ;
+    fread ( common_vs , 1 , sz , f ) ;
+    common_vs[sz] = 0 ; //null terminate it!
     fclose ( f ) ;
-
-    matching_shader.fragment_source = SRCfromfile ;
-
-    rc = raspitexutil_build_shader_program ( &matching_shader ) ;
-    if ( rc != 0 )
-        goto end ;
     
-    assert ( ! SRCfromfile2 ) ;
+    assert ( ! simple_fs ) ;
+    f = fopen ( "gl_scenes/simpleFS.glsl" , "rb" ) ;
+    assert ( f ) ;
+    fseek ( f , 0 , SEEK_END ) ;
+    sz = ftell ( f ) ;
+    fseek ( f , 0 , SEEK_SET ) ;
+    simple_fs = malloc ( sz + 1 ) ;
+    fread ( simple_fs , 1 , sz , f ) ;
+    simple_fs[sz] = 0 ; //null terminate it!
+    fclose ( f ) ;
+    
+    assert ( ! gauss_fs ) ;
+    f = fopen ( "gl_scenes/gaussian5FS.glsl" , "rb" ) ;
+    assert ( f ) ;
+    fseek ( f , 0 , SEEK_END ) ;
+    sz = ftell ( f ) ;
+    fseek ( f , 0 , SEEK_SET ) ;
+    gauss_fs = malloc ( sz + 1 ) ;
+    fread ( gauss_fs , 1 , sz , f ) ;
+    gauss_fs[sz] = 0 ; //null terminate it!
+    fclose ( f ) ;
+    
+    assert ( ! blur_fs ) ;
     f = fopen ( "gl_scenes/blurFS.glsl" , "rb" ) ;
     assert ( f ) ;
     fseek ( f , 0 , SEEK_END ) ;
     sz = ftell ( f ) ;
     fseek ( f , 0 , SEEK_SET ) ;
-    SRCfromfile2 = malloc ( sz + 1 ) ;
-    fread ( SRCfromfile2 , 1 , sz , f ) ;
-    SRCfromfile2[sz] = 0 ; //null terminate it!
+    blur_fs = malloc ( sz + 1 ) ;
+    fread ( blur_fs , 1 , sz , f ) ;
+    blur_fs[sz] = 0 ; //null terminate it!
     fclose ( f ) ;
     
-    matching_blur_shader.fragment_source = SRCfromfile2 ;
-
+    matching_shader_preview.vertex_source = common_vs ;    
+    matching_shader_preview.fragment_source = simple_fs ;
+    rc = raspitexutil_build_shader_program ( &matching_shader_preview ) ;
+    if ( rc != 0 )
+        goto end ;    
+    
+    matching_shader.vertex_source = common_vs ;
+    matching_shader.fragment_source = gauss_fs ;
+    rc = raspitexutil_build_shader_program ( &matching_shader ) ;
+    if ( rc != 0 )
+        goto end ;
+    
+    matching_blur_shader.vertex_source = common_vs ;    
+    matching_blur_shader.fragment_source = blur_fs ;
     rc = raspitexutil_build_shader_program ( &matching_blur_shader ) ;
     if ( rc != 0 )
         goto end ;
