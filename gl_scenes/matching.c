@@ -51,45 +51,54 @@ GLuint my_tex_id ;
 GLuint my_frame_buffer_id ;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 char *common_vs = NULL ;
-char *simple_fs = NULL ;
+char *simpleE_fs = NULL ;
 char *blur_fs = NULL ;
 char *gauss_fs = NULL ;
 char *sobel_fs = NULL ;
-char *mojon_fs = NULL ;
+char *simple_fs = NULL ;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-static RASPITEXUTIL_SHADER_PROGRAM_T matching_shader_preview = {
-                                                                .vertex_source = "" ,
-                                                                .fragment_source = "" ,
-                                                                .uniform_names =
+static RASPITEXUTIL_SHADER_PROGRAM_T preview_shader = {
+                                                       .vertex_source = "" ,
+                                                       .fragment_source = "" ,
+                                                       .uniform_names =
     {"tex" } ,
-                                                                .attribute_names =
+                                                       .attribute_names =
     {"vertex" } ,
 } ;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-static RASPITEXUTIL_SHADER_PROGRAM_T matching_shader = {
-                                                        .vertex_source = "" ,
-                                                        .fragment_source = "" ,
-                                                        .uniform_names =
+static RASPITEXUTIL_SHADER_PROGRAM_T gauss_shader = {
+                                                     .vertex_source = "" ,
+                                                     .fragment_source = "" ,
+                                                     .uniform_names =
     {"tex" , "tex_unit" } ,
-                                                        .attribute_names =
+                                                     .attribute_names =
     {"vertex" } ,
 } ;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-static RASPITEXUTIL_SHADER_PROGRAM_T matching_blur_shader = {
-                                                             .vertex_source = "" ,
-                                                             .fragment_source = "" ,
-                                                             .uniform_names =
+static RASPITEXUTIL_SHADER_PROGRAM_T blur_shader = {
+                                                    .vertex_source = "" ,
+                                                    .fragment_source = "" ,
+                                                    .uniform_names =
     {"tex" , "tex_unit" } ,
-                                                             .attribute_names =
+                                                    .attribute_names =
     {"vertex" } ,
 } ;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-static RASPITEXUTIL_SHADER_PROGRAM_T matching_sobel_shader = {
-                                                              .vertex_source = "" ,
-                                                              .fragment_source = "" ,
-                                                              .uniform_names =
+static RASPITEXUTIL_SHADER_PROGRAM_T sobel_shader = {
+                                                     .vertex_source = "" ,
+                                                     .fragment_source = "" ,
+                                                     .uniform_names =
     {"tex" , "tex_unit" } ,
-                                                              .attribute_names =
+                                                     .attribute_names =
+    {"vertex" } ,
+} ;
+///////////////////////////////////////////////////////////////////////////////////////////////////
+static RASPITEXUTIL_SHADER_PROGRAM_T result_shader = {
+                                                      .vertex_source = "" ,
+                                                      .fragment_source = "" ,
+                                                      .uniform_names =
+    {"tex" } ,
+                                                      .attribute_names =
     {"vertex" } ,
 } ;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -160,16 +169,43 @@ void LoadShadersFromFiles ( )
     sobel_fs[sz] = 0 ; //null terminate it!
     fclose ( f ) ;
 
-    assert ( ! mojon_fs ) ;
-    f = fopen ( "gl_scenes/mojonFS.glsl" , "rb" ) ;
+    assert ( ! simpleE_fs ) ;
+    f = fopen ( "gl_scenes/simpleEFS.glsl" , "rb" ) ;
     assert ( f ) ;
     fseek ( f , 0 , SEEK_END ) ;
     sz = ftell ( f ) ;
     fseek ( f , 0 , SEEK_SET ) ;
-    mojon_fs = malloc ( sz + 1 ) ;
-    fread ( mojon_fs , 1 , sz , f ) ;
-    mojon_fs[sz] = 0 ; //null terminate it!
+    simpleE_fs = malloc ( sz + 1 ) ;
+    fread ( simpleE_fs , 1 , sz , f ) ;
+    simpleE_fs[sz] = 0 ; //null terminate it!
     fclose ( f ) ;
+
+    preview_shader.vertex_source = common_vs ;
+    preview_shader.fragment_source = simpleE_fs ;
+    raspitexutil_build_shader_program ( &preview_shader ) ;
+
+    gauss_shader.vertex_source = common_vs ;
+    gauss_shader.fragment_source = gauss_fs ;
+    raspitexutil_build_shader_program ( &gauss_shader ) ;
+
+    blur_shader.vertex_source = common_vs ;
+    blur_shader.fragment_source = blur_fs ;
+    raspitexutil_build_shader_program ( &blur_shader ) ;
+
+    sobel_shader.vertex_source = common_vs ;
+    sobel_shader.fragment_source = sobel_fs ;
+    raspitexutil_build_shader_program ( &sobel_shader ) ;
+
+    result_shader.vertex_source = common_vs ;
+    result_shader.fragment_source = simple_fs ;
+    raspitexutil_build_shader_program ( &result_shader ) ;
+
+    free ( common_vs ) ;
+    free ( simpleE_fs ) ;
+    free ( blur_fs ) ;
+    free ( gauss_fs ) ;
+    free ( sobel_fs ) ;
+    free ( simple_fs ) ;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -192,32 +228,7 @@ static int matching_init ( RASPITEX_STATE *raspitex_state )
 
     LoadShadersFromFiles ( ) ;
 
-    matching_shader_preview.vertex_source = common_vs ;
-    matching_shader_preview.fragment_source = mojon_fs ;
-    rc = raspitexutil_build_shader_program ( &matching_shader_preview ) ;
-    if ( rc != 0 )
-        goto end ;
-
-    //    matching_shader.vertex_source = common_vs ;
-    //    matching_shader.fragment_source = gauss_fs ;
-    //    rc = raspitexutil_build_shader_program ( &matching_shader ) ;
-    //    if ( rc != 0 )
-    //        goto end ;
-
-    //    matching_blur_shader.vertex_source = common_vs ;
-    //    matching_blur_shader.fragment_source = blur_fs ;
-    //    rc = raspitexutil_build_shader_program ( &matching_blur_shader ) ;
-    //    if ( rc != 0 )
-    //        goto end ;
-
-    //    matching_sobel_shader.vertex_source = common_vs ;
-    //    matching_sobel_shader.fragment_source = sobel_fs ;
-    //    rc = raspitexutil_build_shader_program ( &matching_sobel_shader ) ;
-    //    if ( rc != 0 )
-    //        goto end ;
-
     GLCHK ( glEnable ( GL_TEXTURE_2D ) ) ;
-
     GLCHK ( glGenTextures ( 1 , &my_tex_id ) ) ;
     GLCHK ( glBindTexture ( GL_TEXTURE_2D , my_tex_id ) ) ;
     GLCHK ( glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGBA , raspitex_state->width , raspitex_state->height , 0 , GL_RGBA , GL_UNSIGNED_BYTE , NULL ) ) ;
@@ -227,6 +238,8 @@ static int matching_init ( RASPITEX_STATE *raspitex_state )
     GLCHK ( glGenFramebuffers ( 1 , &my_frame_buffer_id ) ) ;
     GLCHK ( glBindFramebuffer ( GL_FRAMEBUFFER , my_frame_buffer_id ) ) ;
     GLCHK ( glFramebufferTexture2D ( GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D , my_tex_id , 0 ) ) ;
+
+    GLCHK ( glBindFramebuffer ( GL_FRAMEBUFFER , 0 ) ) ;
 
     GLCHK ( glGenBuffers ( 1 , &quad_vbo ) ) ;
     GLCHK ( glBindBuffer ( GL_ARRAY_BUFFER , quad_vbo ) ) ;
@@ -245,114 +258,88 @@ end:
  */
 static int matching_redraw ( RASPITEX_STATE* state )
 {
-    GLCHK ( glBindFramebuffer ( GL_FRAMEBUFFER , my_frame_buffer_id ) ) ;
-    GLCHK ( glViewport ( 0 , 0 , state->width , state->height ) ) ;
-    glClearColor ( 0.0 , 1.0 , 0.0 , 1.0 ) ;
-    glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
-    
-    glFlush ( ) ;
-    glFinish ( ) ;
+    switch ( render_id )
+    {
+        case 0:
+            glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
 
-    GLCHK ( glBindFramebuffer ( GL_FRAMEBUFFER , 0 ) ) ;
-    GLCHK ( glViewport ( 0 , 0 , state->width , state->height ) ) ;
-    GLCHK ( glClearColor ( 1.0f , 0.0f , 0.0f , 1.0f ) ) ;
-    glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
-    
-//    GLCHK ( glEnable ( GL_TEXTURE_2D ) ) ;
-    GLCHK ( glUseProgram ( matching_shader_preview.program ) ) ;
-    GLCHK ( glUniform1i ( matching_shader_preview.uniform_locations[0] , 0 ) ) ; // Texture unit
+            GLCHK ( glUseProgram ( preview_shader.program ) ) ;
+            GLCHK ( glUniform1i ( preview_shader.uniform_locations[0] , 0 ) ) ; // Texture unit    
 
-    GLCHK ( glActiveTexture ( GL_TEXTURE0 ) ) ;
-    GLCHK ( glBindTexture ( GL_TEXTURE_2D , my_tex_id ) ) ;
-    GLCHK ( glBindBuffer ( GL_ARRAY_BUFFER , quad_vbo ) ) ;
-    GLCHK ( glEnableVertexAttribArray ( matching_shader_preview.attribute_locations[0] ) ) ;
-    GLCHK ( glVertexAttribPointer ( matching_shader_preview.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
-    GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
+            GLCHK ( glActiveTexture ( GL_TEXTURE0 ) ) ;
+            GLCHK ( glBindTexture ( GL_TEXTURE_EXTERNAL_OES , state->texture ) ) ;
+            GLCHK ( glBindBuffer ( GL_ARRAY_BUFFER , quad_vbo ) ) ;
+            GLCHK ( glEnableVertexAttribArray ( preview_shader.attribute_locations[0] ) ) ;
+            GLCHK ( glVertexAttribPointer ( preview_shader.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
+            GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
+            break ;
+        case 1:
+            glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
 
+            GLCHK ( glUseProgram ( gauss_shader.program ) ) ;
+            GLCHK ( glUniform1i ( gauss_shader.uniform_locations[0] , 0 ) ) ; // Texture unit
+            /* Dimensions of a single pixel in texture co-ordinates */
+            GLCHK ( glUniform2f ( gauss_shader.uniform_locations[1] , 1.0 / ( float ) state->width , 1.0 / ( float ) state->height ) ) ;
 
-    //    glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
+            GLCHK ( glActiveTexture ( GL_TEXTURE0 ) ) ;
+            GLCHK ( glBindTexture ( GL_TEXTURE_EXTERNAL_OES , state->texture ) ) ;
+            GLCHK ( glBindBuffer ( GL_ARRAY_BUFFER , quad_vbo ) ) ;
+            GLCHK ( glEnableVertexAttribArray ( gauss_shader.attribute_locations[0] ) ) ;
+            GLCHK ( glVertexAttribPointer ( gauss_shader.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
+            GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
+            break ;
+        case 2:
+            glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
 
+            GLCHK ( glUseProgram ( blur_shader.program ) ) ;
+            GLCHK ( glUniform1i ( blur_shader.uniform_locations[0] , 0 ) ) ; // Texture unit
+            /* Dimensions of a single pixel in texture co-ordinates */
+            GLCHK ( glUniform2f ( blur_shader.uniform_locations[1] , 1.0 / ( float ) state->width , 1.0 / ( float ) state->height ) ) ;
 
+            GLCHK ( glActiveTexture ( GL_TEXTURE0 ) ) ;
+            GLCHK ( glBindTexture ( GL_TEXTURE_EXTERNAL_OES , state->texture ) ) ;
+            GLCHK ( glBindBuffer ( GL_ARRAY_BUFFER , quad_vbo ) ) ;
+            GLCHK ( glEnableVertexAttribArray ( blur_shader.attribute_locations[0] ) ) ;
+            GLCHK ( glVertexAttribPointer ( blur_shader.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
+            GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
+            break ;
+        case 3:
+            GLCHK ( glBindFramebuffer ( GL_FRAMEBUFFER , my_frame_buffer_id ) ) ;
+            GLCHK ( glViewport ( 0 , 0 , state->width , state->height ) ) ;
+            glClearColor ( 0.0 , 1.0 , 0.0 , 1.0 ) ;
+            glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
+            
+            GLCHK ( glUseProgram ( sobel_shader.program ) ) ;
+            GLCHK ( glUniform1i ( sobel_shader.uniform_locations[0] , 0 ) ) ; // Texture unit
+            /* Dimensions of a single pixel in texture co-ordinates */
+            GLCHK ( glUniform2f ( sobel_shader.uniform_locations[1] , 1.0 / ( float ) state->width , 1.0 / ( float ) state->height ) ) ;
 
-    //    switch ( render_id )
-    //    {
-    //        case 0:
-    //            GLCHK ( glUseProgram ( matching_shader_preview.program ) ) ;
-    //            GLCHK ( glUniform1i ( matching_shader_preview.uniform_locations[0] , 0 ) ) ; // Texture unit    
-    //
-    //            GLCHK ( glActiveTexture ( GL_TEXTURE0 ) ) ;
-    //            GLCHK ( glBindTexture ( GL_TEXTURE_EXTERNAL_OES , state->texture ) ) ;
-    //            GLCHK ( glBindBuffer ( GL_ARRAY_BUFFER , quad_vbo ) ) ;
-    //            GLCHK ( glEnableVertexAttribArray ( matching_shader_preview.attribute_locations[0] ) ) ;
-    //            GLCHK ( glVertexAttribPointer ( matching_shader_preview.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
-    //            GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
-    //            break ;
-    //        case 1:
-    //            GLCHK ( glUseProgram ( matching_shader.program ) ) ;
-    //            GLCHK ( glUniform1i ( matching_shader.uniform_locations[0] , 0 ) ) ; // Texture unit
-    //            /* Dimensions of a single pixel in texture co-ordinates */
-    //            GLCHK ( glUniform2f ( matching_shader.uniform_locations[1] , 1.0 / ( float ) state->width , 1.0 / ( float ) state->height ) ) ;
-    //
-    //            GLCHK ( glActiveTexture ( GL_TEXTURE0 ) ) ;
-    //            GLCHK ( glBindTexture ( GL_TEXTURE_EXTERNAL_OES , state->texture ) ) ;
-    //            GLCHK ( glBindBuffer ( GL_ARRAY_BUFFER , quad_vbo ) ) ;
-    //            GLCHK ( glEnableVertexAttribArray ( matching_shader.attribute_locations[0] ) ) ;
-    //            GLCHK ( glVertexAttribPointer ( matching_shader.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
-    //            GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
-    //            break ;
-    //        case 2:
-    //            GLCHK ( glUseProgram ( matching_blur_shader.program ) ) ;
-    //            GLCHK ( glUniform1i ( matching_blur_shader.uniform_locations[0] , 0 ) ) ; // Texture unit
-    //            /* Dimensions of a single pixel in texture co-ordinates */
-    //            GLCHK ( glUniform2f ( matching_blur_shader.uniform_locations[1] , 1.0 / ( float ) state->width , 1.0 / ( float ) state->height ) ) ;
-    //
-    //            GLCHK ( glActiveTexture ( GL_TEXTURE0 ) ) ;
-    //            //            GLCHK ( glBindTexture ( GL_TEXTURE_EXTERNAL_OES , state->texture ) ) ;
-    //            GLCHK ( glBindTexture ( GL_TEXTURE_2D , my_tex_id ) ) ;
-    //            GLCHK ( glBindBuffer ( GL_ARRAY_BUFFER , quad_vbo ) ) ;
-    //            GLCHK ( glEnableVertexAttribArray ( matching_blur_shader.attribute_locations[0] ) ) ;
-    //            GLCHK ( glVertexAttribPointer ( matching_blur_shader.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
-    //            GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
-    //            break ;
-    //        case 3:
-    //            GLCHK ( glBindFramebuffer ( GL_FRAMEBUFFER , my_frame_buffer_id ) ) ;
-    //            GLCHK ( glFramebufferTexture2D ( GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D , my_tex_id , 0 ) ) ;
-    //
-    //            if ( glCheckFramebufferStatus ( GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE )
-    //            {
-    //
-    //                GLCHK ( glViewport ( 0 , 0 , state->width , state->height ) ) ;
-    //
-    //                glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
-    //
-    //                GLCHK ( glUseProgram ( matching_sobel_shader.program ) ) ;
-    //                GLCHK ( glUniform1i ( matching_sobel_shader.uniform_locations[0] , 0 ) ) ; // Texture unit
-    //                /* Dimensions of a single pixel in texture co-ordinates */
-    //                GLCHK ( glUniform2f ( matching_sobel_shader.uniform_locations[1] , 1.0 / ( float ) state->width , 1.0 / ( float ) state->height ) ) ;
-    //                GLCHK ( glActiveTexture ( GL_TEXTURE0 ) ) ;
-    //                GLCHK ( glBindTexture ( GL_TEXTURE_EXTERNAL_OES , state->texture ) ) ;
-    //                GLCHK ( glBindBuffer ( GL_ARRAY_BUFFER , quad_vbo ) ) ;
-    //                GLCHK ( glEnableVertexAttribArray ( matching_sobel_shader.attribute_locations[0] ) ) ;
-    //                GLCHK ( glVertexAttribPointer ( matching_sobel_shader.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
-    //                GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
-    //
-    //                GLCHK ( glBindFramebuffer ( GL_FRAMEBUFFER , 0 ) ) ;
-    //                GLCHK ( glViewport ( 0 , 0 , state->width , state->height ) ) ;
-    //                glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
-    //
-    //                GLCHK ( glUseProgram ( matching_shader_preview.program ) ) ;
-    //                GLCHK ( glUniform1i ( matching_shader_preview.uniform_locations[0] , 1 ) ) ; // Texture unit
-    //
-    //                GLCHK ( glActiveTexture ( GL_TEXTURE1 ) ) ;
-    //                //            GLCHK ( glBindTexture ( GL_TEXTURE_EXTERNAL_OES , state->texture ) ) ;
-    //                //                GLCHK ( glBindTexture ( GL_TEXTURE_2D , my_tex_id ) ) ;
-    //                GLCHK ( glBindBuffer ( GL_ARRAY_BUFFER , quad_vbo ) ) ;
-    //                GLCHK ( glEnableVertexAttribArray ( matching_shader_preview.attribute_locations[0] ) ) ;
-    //                GLCHK ( glVertexAttribPointer ( matching_shader_preview.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
-    //                GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
-    //            }
-    //            break ;
-    //    }
+            GLCHK ( glActiveTexture ( GL_TEXTURE0 ) ) ;
+            GLCHK ( glBindTexture ( GL_TEXTURE_EXTERNAL_OES , state->texture ) ) ;
+            GLCHK ( glBindBuffer ( GL_ARRAY_BUFFER , quad_vbo ) ) ;
+            GLCHK ( glEnableVertexAttribArray ( sobel_shader.attribute_locations[0] ) ) ;
+            GLCHK ( glVertexAttribPointer ( sobel_shader.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
+            GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
+
+            glFlush ( ) ;
+            glFinish ( ) ;
+
+            GLCHK ( glBindFramebuffer ( GL_FRAMEBUFFER , 0 ) ) ;
+            GLCHK ( glViewport ( 0 , 0 , state->width , state->height ) ) ;
+            GLCHK ( glClearColor ( 1.0f , 0.0f , 0.0f , 1.0f ) ) ;
+            glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
+
+            GLCHK ( glUseProgram ( result_shader.program ) ) ;
+            GLCHK ( glUniform1i ( result_shader.uniform_locations[0] , 0 ) ) ; // Texture unit
+
+            GLCHK ( glActiveTexture ( GL_TEXTURE0 ) ) ;
+            GLCHK ( glBindTexture ( GL_TEXTURE_2D , my_tex_id ) ) ;
+            GLCHK ( glBindBuffer ( GL_ARRAY_BUFFER , quad_vbo ) ) ;
+            GLCHK ( glEnableVertexAttribArray ( result_shader.attribute_locations[0] ) ) ;
+            GLCHK ( glVertexAttribPointer ( result_shader.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
+            GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
+            break ;
+    }
 
     return 0 ;
 }
