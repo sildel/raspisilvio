@@ -134,7 +134,7 @@ static void default_status ( RASPISTILL_STATE *state )
     //    state->camera_parameters.exposureMode = MMAL_PARAM_EXPOSUREMODE_FIXEDFPS ;
     //    state->camera_parameters.exposureMode = MMAL_PARAM_EXPOSUREMODE_ ;
     //    state->camera_parameters.exposureMode = MMAL_PARAM_EXPOSUREMODE_OFF ;
-    state->camera_parameters.exposureCompensation = 20 ;
+    //    state->camera_parameters.exposureCompensation = 20 ;
     //    state->camera_parameters.exposureMeterMode = MMAL_PARAM_EXPOSUREMETERINGMODE_MATRIX ;
     //    state->camera_parameters.videoStabilisation = 1 ;
     //    state->camera_parameters.awbMode = MMAL_PARAM_AWBMODE_OFF ;
@@ -468,7 +468,7 @@ int main ( int argc , const char **argv )
             ch = getchar ( ) ;
 
             render_id ++ ;
-            if ( render_id >= 4 )
+            if ( render_id >= 2 )
             {
                 render_id = 0 ;
             }
