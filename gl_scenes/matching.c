@@ -47,9 +47,10 @@ static GLfloat quad_varray[] = {
 static GLuint quad_vbo ;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 uint8_t *pixels_from_fb ;
-uint8_t *pixels_from_fb_hist ;
 HISTOGRAM intensity_hist ;
 HISTOGRAM hue_hist ;
+int hue_threshold = 100 ;
+int intensity_threshold = 100 ;
 int hue_umbral = 10 ;
 int intensity_umbral = 10 ;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -231,17 +232,16 @@ static int matching_init ( RASPITEX_STATE *raspitex_state )
         goto end ;
 
     pixels_from_fb = malloc ( raspitex_state->width * raspitex_state->height * 4 ) ;
-    pixels_from_fb_hist = malloc ( raspitex_state->width * raspitex_state->height * 4 ) ;
 
     LoadShadersFromFiles ( ) ;
 
     GLCHK ( glEnable ( GL_TEXTURE_2D ) ) ;
     GLCHK ( glGenTextures ( 1 , &hist_tex_id ) ) ;
 
-    //    GLCHK ( glBindTexture ( GL_TEXTURE_2D , hist_tex_id ) ) ;
-    //    GLCHK ( glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGBA , raspitex_state->width , raspitex_state->height , 0 , GL_RGBA , GL_UNSIGNED_BYTE , 0 ) ) ;
-    //    GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
-    //    GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
+    GLCHK ( glBindTexture ( GL_TEXTURE_2D , hist_tex_id ) ) ;
+    GLCHK ( glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGBA , raspitex_state->width , raspitex_state->height , 0 , GL_RGBA , GL_UNSIGNED_BYTE , 0 ) ) ;
+    GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
+    GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
 
     //    GLCHK ( glEnable ( GL_TEXTURE_2D ) ) ;
     //    GLCHK ( glGenTextures ( 1 , &my_tex_id ) ) ;
@@ -359,18 +359,17 @@ static int matching_redraw ( RASPITEX_STATE* state )
             InitHist ( &hue_hist , hue_umbral ) ;
 
             uint8_t* out = pixels_from_fb ;
-            uint8_t* in = pixels_from_fb_hist ;
+            uint8_t* end = out + 4 * state->width * state->height ;
+
 
             for ( j = 0 ; j < height ; j ++ )
             {
                 int base = 4 * ( j * state->width + x ) ;
-                int base2 = 4 * j * width ;
                 for ( i = 0 ; i < width ; i ++ )
                 {
                     uint8_t intensity = out[base + i * 4 + 0] ;
                     uint8_t saturation = out[base + i * 4 + 1] ;
                     uint8_t hue = out[base + i * 4 + 2] ;
-                    uint8_t alpha = out[base + i * 4 + 3] ;
 
                     intensity_hist.bins[intensity / intensity_hist.bin_width] ++ ;
                     intensity_hist.count ++ ;
@@ -380,16 +379,42 @@ static int matching_redraw ( RASPITEX_STATE* state )
                         hue_hist.bins[hue / hue_hist.bin_width] ++ ;
                         hue_hist.count ++ ;
                     }
-
-                    in[base2 + 4 * i + 0] = intensity ;
-                    in[base2 + 4 * i + 1] = saturation ;
-                    in[base2 + 4 * i + 2] = hue ;
-                    in[base2 + 4 * i + 3] = alpha ;
                 }
             }
 
+            while ( out < end )
+            {
+                uint8_t intensity = out[0] ;
+                uint8_t saturation = out[1] ;
+                uint8_t hue = out[2] ;
+
+                int intensity_value = getFilteredValue ( &intensity_hist , intensity ) ;
+                int hue_value = getFilteredValue ( &hue_hist , hue ) ;
+
+                if ( intensity < intensity_hist.bin_width )
+                {
+                    if ( intensity_value < intensity_threshold )
+                    {
+                        out[0] = out[1] = out[2] = 255 ;
+                    }
+                    else
+                    {
+                        out[0] = out[1] = out[2] = 0 ;
+                    }
+                }
+                else if ( hue_value < hue_threshold || intensity_value < intensity_threshold )
+                {
+                    out[0] = out[1] = out[2] = 255 ;
+                }
+                else
+                {
+                    out[0] = out[1] = out[2] = 0 ;
+                }
+                out += 4 ;
+            }
+
             GLCHK ( glBindTexture ( GL_TEXTURE_2D , hist_tex_id ) ) ;
-            GLCHK ( glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGBA , width , height , 0 , GL_RGBA , GL_UNSIGNED_BYTE , pixels_from_fb_hist ) ) ;
+            GLCHK ( glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGBA , state->width , state->height , 0 , GL_RGBA , GL_UNSIGNED_BYTE , pixels_from_fb ) ) ;
             GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
             GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
 
@@ -426,13 +451,32 @@ void InitHist ( HISTOGRAM * hist , int b_width )
     hist->count = 0 ;
 
     int i ;
-    for ( i = 0 ; i < 256 ; i ++ )
+    for ( i = 0 ; i < 257 ; i ++ )
     {
         hist->bins[i] = 0 ;
     }
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-//TODO: add threshold for h and i
+
+int getFilteredValue ( HISTOGRAM *hist , int value )
+{
+    int bin_index = value / hist->bin_width ;
+    int average ;
+
+    if ( bin_index )
+    {
+
+        average = ( intensity_hist.bins[bin_index] +
+                    intensity_hist.bins[bin_index + 1] +
+                    intensity_hist.bins[bin_index - 1] ) / 3 ;
+    }
+    else
+    {
+        average = ( intensity_hist.bins[bin_index] +
+                    intensity_hist.bins[bin_index + 1] ) / 3 ;
+    }
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
 //TODO: test make histogram from shader
 //TODO: do processing with opencv
 

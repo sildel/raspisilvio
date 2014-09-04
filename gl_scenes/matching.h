@@ -16,7 +16,7 @@ typedef struct {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 typedef struct {
-    int bins[256];
+    int bins[257];
     int bin_width;
     int count;
 } HISTOGRAM;
@@ -24,10 +24,13 @@ typedef struct {
 int matching_open(RASPITEX_STATE *state);
 void LoadShadersFromFiles();
 void InitHist(HISTOGRAM *, int);
+int getFilteredValue(HISTOGRAM *, int);
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 extern int render_id;
 extern int hue_umbral;
 extern int intensity_umbral;
+extern int hue_threshold;
+extern int intensity_threshold;
 extern HEADING_REGIONS heads;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #endif /* MATCHING_H */
