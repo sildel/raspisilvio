@@ -47,6 +47,7 @@ static GLfloat quad_varray[] = {
 static GLuint quad_vbo ;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 uint8_t *pixels_from_fb ;
+uint8_t *pixels_from_fb_hist ;
 HISTOGRAM intensity_hist ;
 HISTOGRAM hue_hist ;
 int hue_umbral = 10 ;
@@ -230,11 +231,18 @@ static int matching_init ( RASPITEX_STATE *raspitex_state )
         goto end ;
 
     pixels_from_fb = malloc ( raspitex_state->width * raspitex_state->height * 4 ) ;
+    pixels_from_fb_hist = malloc ( raspitex_state->width * raspitex_state->height * 4 ) ;
 
     LoadShadersFromFiles ( ) ;
 
     GLCHK ( glEnable ( GL_TEXTURE_2D ) ) ;
     GLCHK ( glGenTextures ( 1 , &hist_tex_id ) ) ;
+
+    //    GLCHK ( glBindTexture ( GL_TEXTURE_2D , hist_tex_id ) ) ;
+    //    GLCHK ( glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGBA , raspitex_state->width , raspitex_state->height , 0 , GL_RGBA , GL_UNSIGNED_BYTE , 0 ) ) ;
+    //    GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
+    //    GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
+
     //    GLCHK ( glEnable ( GL_TEXTURE_2D ) ) ;
     //    GLCHK ( glGenTextures ( 1 , &my_tex_id ) ) ;
     //    GLCHK ( glBindTexture ( GL_TEXTURE_2D , my_tex_id ) ) ;
@@ -265,6 +273,8 @@ end:
  */
 static int matching_redraw ( RASPITEX_STATE* state )
 {
+    int i , j ;
+
     switch ( render_id )
     {
         case 0:
@@ -342,34 +352,44 @@ static int matching_redraw ( RASPITEX_STATE* state )
             width = 0.5f * state->width * ( heads.xb2 - heads.xb1 ) ;
             height = 0.5f * state->width * ( heads.y1 + 1.0f ) ;
 
-            GLCHK ( glReadPixels ( x , 0 , width , height , GL_RGBA , GL_UNSIGNED_BYTE , pixels_from_fb ) ) ;
+            //            GLCHK ( glReadPixels ( x , 0 , width , height , GL_RGBA , GL_UNSIGNED_BYTE , pixels_from_fb ) ) ;
+            GLCHK ( glReadPixels ( 0 , 0 , state->width , state->height , GL_RGBA , GL_UNSIGNED_BYTE , pixels_from_fb ) ) ;
 
             InitHist ( &intensity_hist , intensity_umbral ) ;
             InitHist ( &hue_hist , hue_umbral ) ;
 
             uint8_t* out = pixels_from_fb ;
-            uint8_t* end = pixels_from_fb + 4 * width *height ;
+            uint8_t* in = pixels_from_fb_hist ;
 
-            while ( out < end )
+            for ( j = 0 ; j < height ; j ++ )
             {
-                uint8_t i = out[0] ;
-                uint8_t s = out[1] ;
-                uint8_t h = out[2] ;
-
-                intensity_hist.bins[i / intensity_hist.bin_width] ++ ;
-                intensity_hist.count ++ ;
-
-                if ( i > intensity_hist.bin_width && s > intensity_hist.bin_width )
+                int base = 4 * ( j * state->width + x ) ;
+                int base2 = 4 * j * width ;
+                for ( i = 0 ; i < width ; i ++ )
                 {
-                    hue_hist.bins[h / hue_hist.bin_width] ++ ;
-                    hue_hist.count ++ ;
-                }
+                    uint8_t intensity = out[base + i * 4 + 0] ;
+                    uint8_t saturation = out[base + i * 4 + 1] ;
+                    uint8_t hue = out[base + i * 4 + 2] ;
+                    uint8_t alpha = out[base + i * 4 + 3] ;
 
-                out += 4 ;
+                    intensity_hist.bins[intensity / intensity_hist.bin_width] ++ ;
+                    intensity_hist.count ++ ;
+
+                    if ( intensity > intensity_hist.bin_width && saturation > intensity_hist.bin_width )
+                    {
+                        hue_hist.bins[hue / hue_hist.bin_width] ++ ;
+                        hue_hist.count ++ ;
+                    }
+
+                    in[base2 + 4 * i + 0] = intensity ;
+                    in[base2 + 4 * i + 1] = saturation ;
+                    in[base2 + 4 * i + 2] = hue ;
+                    in[base2 + 4 * i + 3] = alpha ;
+                }
             }
 
             GLCHK ( glBindTexture ( GL_TEXTURE_2D , hist_tex_id ) ) ;
-            GLCHK ( glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGBA , width , height , 0 , GL_RGBA , GL_UNSIGNED_BYTE , pixels_from_fb ) ) ;
+            GLCHK ( glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGBA , width , height , 0 , GL_RGBA , GL_UNSIGNED_BYTE , pixels_from_fb_hist ) ) ;
             GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
             GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
 
