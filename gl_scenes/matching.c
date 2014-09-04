@@ -46,7 +46,14 @@ static GLfloat quad_varray[] = {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static GLuint quad_vbo ;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+uint8_t *pixels_from_fb ;
+HISTOGRAM intensity_hist ;
+HISTOGRAM hue_hist ;
+int hue_umbral = 10 ;
+int intensity_umbral = 10 ;
+///////////////////////////////////////////////////////////////////////////////////////////////////
 int render_id = 0 ;
+GLuint hist_tex_id ;
 //GLuint preview_tex_id ;
 //GLuint preview_fb_id ;
 //GLuint result_tex_id ;
@@ -87,6 +94,15 @@ static RASPITEXUTIL_SHADER_PROGRAM_T lines_shader = {
     {"vertex" } ,
 } ;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+static RASPITEXUTIL_SHADER_PROGRAM_T hist_shader = {
+                                                    .vertex_source = "" ,
+                                                    .fragment_source = "" ,
+                                                    .uniform_names =
+    {"tex" } ,
+                                                    .attribute_names =
+    {"vertex" } ,
+} ;
+///////////////////////////////////////////////////////////////////////////////////////////////////
 static const EGLint matching_egl_config_attribs[] = {
                                                      EGL_RED_SIZE , 8 ,
                                                      EGL_GREEN_SIZE , 8 ,
@@ -104,6 +120,7 @@ void LoadShadersFromFiles ( )
     char *hsi_fs = NULL ;
     char *lines_fs = NULL ;
     char *lines_vs = NULL ;
+    char *simple_fs = NULL ;
 
     assert ( ! hsi_fs ) ;
     FILE* f = fopen ( "gl_scenes/g5hsiMFS.glsl" , "rb" ) ;
@@ -160,6 +177,17 @@ void LoadShadersFromFiles ( )
     lines_vs[sz] = 0 ; //null terminate it!
     fclose ( f ) ;
 
+    assert ( ! simple_fs ) ;
+    f = fopen ( "gl_scenes/simpleFS.glsl" , "rb" ) ;
+    assert ( f ) ;
+    fseek ( f , 0 , SEEK_END ) ;
+    sz = ftell ( f ) ;
+    fseek ( f , 0 , SEEK_SET ) ;
+    simple_fs = malloc ( sz + 1 ) ;
+    fread ( simple_fs , 1 , sz , f ) ;
+    simple_fs[sz] = 0 ; //null terminate it!
+    fclose ( f ) ;
+
     preview_shader.vertex_source = common_vs ;
     preview_shader.fragment_source = simpleE_fs ;
     raspitexutil_build_shader_program ( &preview_shader ) ;
@@ -171,6 +199,10 @@ void LoadShadersFromFiles ( )
     lines_shader.vertex_source = lines_vs ;
     lines_shader.fragment_source = lines_fs ;
     raspitexutil_build_shader_program ( &lines_shader ) ;
+
+    hist_shader.vertex_source = common_vs ;
+    hist_shader.fragment_source = simple_fs ;
+    raspitexutil_build_shader_program ( &hist_shader ) ;
 
     free ( common_vs ) ;
     free ( simpleE_fs ) ;
@@ -197,8 +229,12 @@ static int matching_init ( RASPITEX_STATE *raspitex_state )
     if ( rc != 0 )
         goto end ;
 
+    pixels_from_fb = malloc ( raspitex_state->width * raspitex_state->height * 4 ) ;
+
     LoadShadersFromFiles ( ) ;
 
+    GLCHK ( glEnable ( GL_TEXTURE_2D ) ) ;
+    GLCHK ( glGenTextures ( 1 , &hist_tex_id ) ) ;
     //    GLCHK ( glEnable ( GL_TEXTURE_2D ) ) ;
     //    GLCHK ( glGenTextures ( 1 , &my_tex_id ) ) ;
     //    GLCHK ( glBindTexture ( GL_TEXTURE_2D , my_tex_id ) ) ;
@@ -281,6 +317,74 @@ static int matching_redraw ( RASPITEX_STATE* state )
             GLCHK ( glVertexAttribPointer ( hsi_shader.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
             GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
             break ;
+        case 2:
+            glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
+
+            GLCHK ( glUseProgram ( hsi_shader.program ) ) ;
+            GLCHK ( glUniform1i ( hsi_shader.uniform_locations[0] , 0 ) ) ; // Texture unit
+            /* Dimensions of a single pixel in texture co-ordinates */
+            GLCHK ( glUniform2f ( hsi_shader.uniform_locations[1] , 1.0 / ( float ) state->width , 1.0 / ( float ) state->height ) ) ;
+            /* Heads */
+            GLCHK ( glUniform4f ( hsi_shader.uniform_locations[2] , heads.xb1 , heads.xu1 , heads.xu2 , heads.xb2 ) ) ;
+
+            GLCHK ( glActiveTexture ( GL_TEXTURE0 ) ) ;
+            GLCHK ( glBindTexture ( GL_TEXTURE_EXTERNAL_OES , state->texture ) ) ;
+            GLCHK ( glBindBuffer ( GL_ARRAY_BUFFER , quad_vbo ) ) ;
+            GLCHK ( glEnableVertexAttribArray ( hsi_shader.attribute_locations[0] ) ) ;
+            GLCHK ( glVertexAttribPointer ( hsi_shader.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
+            GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
+
+            int x , y , width , height ;
+
+            x = state->width * 0.5f * ( heads.xb1 + 1.0f ) ;
+            y = 0 ;
+
+            width = 0.5f * state->width * ( heads.xb2 - heads.xb1 ) ;
+            height = 0.5f * state->width * ( heads.y1 + 1.0f ) ;
+
+            GLCHK ( glReadPixels ( x , 0 , width , height , GL_RGBA , GL_UNSIGNED_BYTE , pixels_from_fb ) ) ;
+
+            InitHist ( &intensity_hist , intensity_umbral ) ;
+            InitHist ( &hue_hist , hue_umbral ) ;
+
+            uint8_t* out = pixels_from_fb ;
+            uint8_t* end = pixels_from_fb + 4 * width *height ;
+
+            while ( out < end )
+            {
+                uint8_t i = out[0] ;
+                uint8_t s = out[1] ;
+                uint8_t h = out[2] ;
+
+                intensity_hist.bins[i / intensity_hist.bin_width] ++ ;
+                intensity_hist.count ++ ;
+
+                if ( i > intensity_hist.bin_width && s > intensity_hist.bin_width )
+                {
+                    hue_hist.bins[h / hue_hist.bin_width] ++ ;
+                    hue_hist.count ++ ;
+                }
+
+                out += 4 ;
+            }
+
+            GLCHK ( glBindTexture ( GL_TEXTURE_2D , hist_tex_id ) ) ;
+            GLCHK ( glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGBA , width , height , 0 , GL_RGBA , GL_UNSIGNED_BYTE , pixels_from_fb ) ) ;
+            GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
+            GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
+
+            GLCHK ( glUseProgram ( hist_shader.program ) ) ;
+            GLCHK ( glUniform1i ( hist_shader.uniform_locations[0] , 0 ) ) ; // Texture unit
+
+            GLCHK ( glActiveTexture ( GL_TEXTURE0 ) ) ;
+            GLCHK ( glBindTexture ( GL_TEXTURE_2D , hist_tex_id ) ) ;
+            GLCHK ( glBindBuffer ( GL_ARRAY_BUFFER , quad_vbo ) ) ;
+            GLCHK ( glEnableVertexAttribArray ( hist_shader.attribute_locations[0] ) ) ;
+            GLCHK ( glVertexAttribPointer ( hist_shader.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
+            GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
+
+            //TODO: visualize this
+            break ;
     }
 
     return 0 ;
@@ -295,5 +399,20 @@ int matching_open ( RASPITEX_STATE *state )
     return 0 ;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-//TODO: add umbral for i and v
+
+void InitHist ( HISTOGRAM * hist , int b_width )
+{
+    hist->bin_width = b_width ;
+    hist->count = 0 ;
+
+    int i ;
+    for ( i = 0 ; i < 256 ; i ++ )
+    {
+        hist->bins[i] = 0 ;
+    }
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//TODO: add threshold for h and i
 //TODO: test make histogram from shader
+//TODO: do processing with opencv
+
