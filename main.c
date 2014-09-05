@@ -468,7 +468,7 @@ int main ( int argc , const char **argv )
             ch = getchar ( ) ;
 
             render_id ++ ;
-            if ( render_id >= 4 )
+            if ( render_id >= 3 )
             {
                 render_id = 0 ;
             }

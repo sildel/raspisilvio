@@ -24,6 +24,7 @@ typedef struct {
 int matching_open(RASPITEX_STATE *state);
 void LoadShadersFromFiles();
 void InitHist(HISTOGRAM *, int);
+void WriteHistToTexrute(HISTOGRAM *, uint8_t *);
 int getFilteredValue(HISTOGRAM *, int);
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 extern int render_id;
