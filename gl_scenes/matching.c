@@ -47,6 +47,7 @@ static GLfloat quad_varray[] = {
 static GLuint quad_vbo ;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 uint8_t *pixels_from_fb ;
+uint8_t *pixels_hist ;
 HISTOGRAM intensity_hist ;
 HISTOGRAM hue_hist ;
 int hue_threshold = 100 ;
@@ -54,7 +55,7 @@ int intensity_threshold = 100 ;
 int hue_umbral = 10 ;
 int intensity_umbral = 10 ;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-int render_id = 0 ;
+int render_id = 3 ;
 GLuint hist_tex_id ;
 //GLuint preview_tex_id ;
 //GLuint preview_fb_id ;
@@ -105,6 +106,15 @@ static RASPITEXUTIL_SHADER_PROGRAM_T hist_shader = {
     {"vertex" } ,
 } ;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+static RASPITEXUTIL_SHADER_PROGRAM_T reading_shader = {
+                                                       .vertex_source = "" ,
+                                                       .fragment_source = "" ,
+                                                       .uniform_names =
+    {"tex" } ,
+                                                       .attribute_names =
+    {"vertex" } ,
+} ;
+///////////////////////////////////////////////////////////////////////////////////////////////////
 static const EGLint matching_egl_config_attribs[] = {
                                                      EGL_RED_SIZE , 8 ,
                                                      EGL_GREEN_SIZE , 8 ,
@@ -123,6 +133,7 @@ void LoadShadersFromFiles ( )
     char *lines_fs = NULL ;
     char *lines_vs = NULL ;
     char *simple_fs = NULL ;
+    char *reading_fs = NULL ;
 
     assert ( ! hsi_fs ) ;
     FILE* f = fopen ( "gl_scenes/g5hsiMFS.glsl" , "rb" ) ;
@@ -190,6 +201,17 @@ void LoadShadersFromFiles ( )
     simple_fs[sz] = 0 ; //null terminate it!
     fclose ( f ) ;
 
+    assert ( ! reading_fs ) ;
+    f = fopen ( "gl_scenes/readingFS.glsl" , "rb" ) ;
+    assert ( f ) ;
+    fseek ( f , 0 , SEEK_END ) ;
+    sz = ftell ( f ) ;
+    fseek ( f , 0 , SEEK_SET ) ;
+    reading_fs = malloc ( sz + 1 ) ;
+    fread ( reading_fs , 1 , sz , f ) ;
+    reading_fs[sz] = 0 ; //null terminate it!
+    fclose ( f ) ;
+
     preview_shader.vertex_source = common_vs ;
     preview_shader.fragment_source = simpleE_fs ;
     raspitexutil_build_shader_program ( &preview_shader ) ;
@@ -205,6 +227,10 @@ void LoadShadersFromFiles ( )
     hist_shader.vertex_source = common_vs ;
     hist_shader.fragment_source = simple_fs ;
     raspitexutil_build_shader_program ( &hist_shader ) ;
+
+    reading_shader.vertex_source = common_vs ;
+    reading_shader.fragment_source = reading_fs ;
+    raspitexutil_build_shader_program ( &reading_shader ) ;
 
     free ( common_vs ) ;
     free ( simpleE_fs ) ;
@@ -232,14 +258,46 @@ static int matching_init ( RASPITEX_STATE *raspitex_state )
         goto end ;
 
     pixels_from_fb = malloc ( raspitex_state->width * raspitex_state->height * 4 ) ;
+    pixels_hist = malloc ( 257 * 3 * 4 ) ;
 
     LoadShadersFromFiles ( ) ;
 
     GLCHK ( glEnable ( GL_TEXTURE_2D ) ) ;
     GLCHK ( glGenTextures ( 1 , &hist_tex_id ) ) ;
 
+    //    GLCHK ( glBindTexture ( GL_TEXTURE_2D , hist_tex_id ) ) ;
+    //    GLCHK ( glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGBA , raspitex_state->width , raspitex_state->height , 0 , GL_RGBA , GL_UNSIGNED_BYTE , 0 ) ) ;
+    //    GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
+    //    GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
+
+    uint8_t *out = pixels_hist ;
+    uint8_t *end = out + 4 * 257 * 3 ;
+
+    int counter = 1000000 ;
+    int aux ;
+
+    while ( out < end )
+    {
+        out[3] = counter / 1000000 + 10 ;
+        aux = counter % 1000000 ;
+        out[2] = aux / 10000 + 10 ;
+        aux = aux % 10000 ;
+        out[1] = aux / 100 + 10 ;
+        out[0] = aux % 100 + 10 ;
+
+        out += 4 ;
+
+
+        //        out[0] = counter ; //r
+        //        out[1] = 0x01 ; //g
+        //        out[2] = 0x00 ; //b
+        //        out[3] = 0x00 ; //a
+        //        out += 4 ;
+        counter ++ ;
+    }
+
     GLCHK ( glBindTexture ( GL_TEXTURE_2D , hist_tex_id ) ) ;
-    GLCHK ( glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGBA , raspitex_state->width , raspitex_state->height , 0 , GL_RGBA , GL_UNSIGNED_BYTE , 0 ) ) ;
+    GLCHK ( glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGBA , 257 , 3 , 0 , GL_RGBA , GL_UNSIGNED_BYTE , pixels_hist ) ) ;
     GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
     GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
 
@@ -427,9 +485,21 @@ static int matching_redraw ( RASPITEX_STATE* state )
             GLCHK ( glEnableVertexAttribArray ( hist_shader.attribute_locations[0] ) ) ;
             GLCHK ( glVertexAttribPointer ( hist_shader.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
             GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
-
-            //TODO: visualize this
             break ;
+        case 3:
+            glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
+
+            GLCHK ( glUseProgram ( reading_shader.program ) ) ;
+            GLCHK ( glUniform1i ( reading_shader.uniform_locations[0] , 0 ) ) ; // Texture unit
+
+            GLCHK ( glActiveTexture ( GL_TEXTURE0 ) ) ;
+            GLCHK ( glBindTexture ( GL_TEXTURE_2D , hist_tex_id ) ) ;
+            GLCHK ( glBindBuffer ( GL_ARRAY_BUFFER , quad_vbo ) ) ;
+            GLCHK ( glEnableVertexAttribArray ( reading_shader.attribute_locations[0] ) ) ;
+            GLCHK ( glVertexAttribPointer ( reading_shader.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
+            GLCHK ( glDrawArrays ( GL_TRIANGLES , 0 , 6 ) ) ;
+            break ;
+
     }
 
     return 0 ;
@@ -479,4 +549,4 @@ int getFilteredValue ( HISTOGRAM *hist , int value )
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //TODO: test make histogram from shader
 //TODO: do processing with opencv
-
+//TODO: match through entire image
