@@ -48,7 +48,8 @@ static GLuint quad_vbo ;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 uint8_t *pixels_from_fb ;
 uint8_t *pixels_from_fb_full ;
-uint8_t *pixels_hist ;
+uint8_t *pixels_hist_h ;
+uint8_t *pixels_hist_i ;
 HISTOGRAM intensity_hist ;
 HISTOGRAM hue_hist ;
 int hue_threshold = 100 ;
@@ -57,7 +58,8 @@ int hue_umbral = 10 ;
 int intensity_umbral = 10 ;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int render_id = 0 ;
-GLuint hist_tex_id ;
+GLuint h_hist_tex_id ;
+GLuint i_hist_tex_id ;
 GLuint trap_tex_id ;
 GLuint hsi_tex_id ;
 GLuint hsi_fbo_id ;
@@ -131,7 +133,7 @@ static RASPITEXUTIL_SHADER_PROGRAM_T hist_shader = {
                                                     .vertex_source = "" ,
                                                     .fragment_source = "" ,
                                                     .uniform_names =
-    {"tex" , "hist" , "threshold" , "binW" } ,
+    {"tex" , "hist_h" , "hist_i" , "threshold" } ,
                                                     .attribute_names =
     {"vertex" } ,
 } ;
@@ -214,14 +216,20 @@ static int matching_init ( RASPITEX_STATE *raspitex_state )
 
     pixels_from_fb = malloc ( raspitex_state->width * raspitex_state->height * 4 ) ;
     pixels_from_fb_full = malloc ( raspitex_state->width * raspitex_state->height * 4 ) ;
-    pixels_hist = malloc ( 257 * 3 * 4 ) ;
+    pixels_hist_h = malloc ( 257 * 3 * 4 ) ;
+    pixels_hist_i = malloc ( 257 * 3 * 4 ) ;
 
     LoadShadersFromFiles ( ) ;
 
     GLCHK ( glEnable ( GL_TEXTURE_2D ) ) ;
     GLCHK ( glGenTextures ( 1 , &trap_tex_id ) ) ;
 
-    GLCHK ( glBindTexture ( GL_TEXTURE_2D , hist_tex_id ) ) ;
+    GLCHK ( glBindTexture ( GL_TEXTURE_2D , h_hist_tex_id ) ) ;
+    GLCHK ( glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGBA , 257 , 3 , 0 , GL_RGBA , GL_UNSIGNED_BYTE , NULL ) ) ;
+    GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
+    GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
+
+    GLCHK ( glBindTexture ( GL_TEXTURE_2D , i_hist_tex_id ) ) ;
     GLCHK ( glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGBA , 257 , 3 , 0 , GL_RGBA , GL_UNSIGNED_BYTE , NULL ) ) ;
     GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
     GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
@@ -553,26 +561,34 @@ static int matching_redraw ( RASPITEX_STATE* state )
                 out += 4 ;
             }
 
-            WriteHistToTexture ( &hue_hist , &intensity_hist , pixels_hist ) ;
+            WriteHistToTexture ( &hue_hist , pixels_hist_h ) ;
+            WriteHistToTexture ( &intensity_hist , pixels_hist_i ) ;
 
             glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
 
-            GLCHK ( glBindTexture ( GL_TEXTURE_2D , hist_tex_id ) ) ;
-            GLCHK ( glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGBA , 257 , 3 , 0 , GL_RGBA , GL_UNSIGNED_BYTE , pixels_hist ) ) ;
+            GLCHK ( glBindTexture ( GL_TEXTURE_2D , h_hist_tex_id ) ) ;
+            GLCHK ( glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGBA , 255 / hue_hist.bin_width + 1 , 2 , 0 , GL_RGBA , GL_UNSIGNED_BYTE , pixels_hist_h ) ) ;
+            GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
+            GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
+
+            GLCHK ( glBindTexture ( GL_TEXTURE_2D , i_hist_tex_id ) ) ;
+            GLCHK ( glTexImage2D ( GL_TEXTURE_2D , 0 , GL_RGBA , 255 / intensity_hist.bin_width + 1 , 2 , 0 , GL_RGBA , GL_UNSIGNED_BYTE , pixels_hist_i ) ) ;
             GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
             GLCHK ( glTexParameterf ( GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , ( GLfloat ) GL_NEAREST ) ) ;
 
             GLCHK ( glUseProgram ( hist_shader.program ) ) ;
             GLCHK ( glUniform1i ( hist_shader.uniform_locations[0] , 0 ) ) ; // Texture unit
             GLCHK ( glUniform1i ( hist_shader.uniform_locations[1] , 1 ) ) ; // Texture unit
-            GLCHK ( glUniform2i ( hist_shader.uniform_locations[2] , hue_threshold , intensity_threshold ) ) ; // threshold
-            GLCHK ( glUniform2i ( hist_shader.uniform_locations[3] , hue_hist.bin_width , intensity_hist.bin_width ) ) ; // bin width
+            GLCHK ( glUniform1i ( hist_shader.uniform_locations[2] , 2 ) ) ; // Texture unit
+            GLCHK ( glUniform2i ( hist_shader.uniform_locations[3] , hue_threshold , intensity_threshold ) ) ; // threshold            
 
             GLCHK ( glActiveTexture ( GL_TEXTURE0 ) ) ;
             GLCHK ( glBindTexture ( GL_TEXTURE_2D , hsi_tex_id ) ) ;
 
             GLCHK ( glActiveTexture ( GL_TEXTURE1 ) ) ;
-            GLCHK ( glBindTexture ( GL_TEXTURE_2D , hist_tex_id ) ) ;
+            GLCHK ( glBindTexture ( GL_TEXTURE_2D , h_hist_tex_id ) ) ;
+            GLCHK ( glActiveTexture ( GL_TEXTURE2 ) ) ;
+            GLCHK ( glBindTexture ( GL_TEXTURE_2D , i_hist_tex_id ) ) ;
             GLCHK ( glBindBuffer ( GL_ARRAY_BUFFER , quad_vbo ) ) ;
             GLCHK ( glEnableVertexAttribArray ( hist_shader.attribute_locations[0] ) ) ;
             GLCHK ( glVertexAttribPointer ( hist_shader.attribute_locations[0] , 2 , GL_FLOAT , GL_FALSE , 0 , 0 ) ) ;
@@ -726,27 +742,22 @@ void InitHist ( HISTOGRAM * hist , int b_width )
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-void WriteHistToTexture ( HISTOGRAM * hist , HISTOGRAM * hist2 , uint8_t * text )
+void WriteHistToTexture ( HISTOGRAM * hist , uint8_t * text )
 {
     int i , aux ;
     int n_bins = 255 / hist->bin_width + 1 ;
 
     for ( i = 0 ; i < n_bins ; i ++ )
     {
-        text[4 * i + 3] = hist->bins[i] / 1000000 + 10 ;
-        aux = hist->bins[i] % 1000000 ;
-        text[4 * i + 2] = aux / 10000 + 10 ;
-        aux = aux % 10000 ;
-        text[4 * i + 1] = aux / 100 + 10 ;
-        text[4 * i] = aux % 100 + 10 ;
-    }
+        int sum = hist->bins[i] + hist->bins[i + 1] ;
+        if ( i )
+        {
+            sum += hist->bins[i - 1] ;
+        }
+        sum /= 3 ;
 
-    n_bins = 255 / hist2->bin_width + 1 ;
-
-    for ( i = 0 ; i < n_bins ; i ++ )
-    {
-        text[257 + 4 * i + 3] = hist2->bins[i] / 1000000 + 10 ;
-        aux = hist2->bins[i] % 1000000 ;
+        text[4 * i + 3] = sum / 1000000 + 10 ;
+        aux = sum % 1000000 ;
         text[4 * i + 2] = aux / 10000 + 10 ;
         aux = aux % 10000 ;
         text[4 * i + 1] = aux / 100 + 10 ;
