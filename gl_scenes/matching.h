@@ -10,7 +10,7 @@
 
 typedef struct {
     float xb1, xb2;
-    float xu1, xu2;
+    float xt1, xt2;
     float y1, y2;
 } HEADING_REGIONS;
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -24,7 +24,7 @@ typedef struct {
 int matching_open(RASPITEX_STATE *state);
 void LoadShadersFromFiles();
 void InitHist(HISTOGRAM *, int);
-void WriteHistToTexrute(HISTOGRAM *, uint8_t *);
+void WriteHistToTexture(HISTOGRAM *, HISTOGRAM *, uint8_t *);
 int getFilteredValue(HISTOGRAM *, int);
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 extern int render_id;
