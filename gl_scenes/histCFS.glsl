@@ -3,6 +3,7 @@ uniform sampler2D tex;
 uniform sampler2D hist_h;
 uniform sampler2D hist_i;
 uniform ivec2 threshold;
+uniform int i_umbral;
 
 void main(void)
 {
@@ -31,8 +32,7 @@ void main(void)
     
     int I_sum = b8*100*100*100 + b7*100*100 + b6*100 + b5;
 
-    /* add a uniform for intensity umbral*/
-    if ( int(color.b*255.0) < 10 )
+    if ( int(color.b*255.0) < i_umbral )
     {
         if ( I_sum < threshold.y )
         {

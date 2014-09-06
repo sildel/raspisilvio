@@ -133,7 +133,7 @@ static RASPITEXUTIL_SHADER_PROGRAM_T hist_shader = {
                                                     .vertex_source = "" ,
                                                     .fragment_source = "" ,
                                                     .uniform_names =
-    {"tex" , "hist_h" , "hist_i" , "threshold" } ,
+    {"tex" , "hist_h" , "hist_i" , "threshold" , "i_umbral" } ,
                                                     .attribute_names =
     {"vertex" } ,
 } ;
@@ -580,7 +580,8 @@ static int matching_redraw ( RASPITEX_STATE* state )
             GLCHK ( glUniform1i ( hist_shader.uniform_locations[0] , 0 ) ) ; // Texture unit
             GLCHK ( glUniform1i ( hist_shader.uniform_locations[1] , 1 ) ) ; // Texture unit
             GLCHK ( glUniform1i ( hist_shader.uniform_locations[2] , 2 ) ) ; // Texture unit
-            GLCHK ( glUniform2i ( hist_shader.uniform_locations[3] , hue_threshold , intensity_threshold ) ) ; // threshold            
+            GLCHK ( glUniform2i ( hist_shader.uniform_locations[3] , hue_threshold , intensity_threshold ) ) ; // threshold
+            GLCHK ( glUniform1i ( hist_shader.uniform_locations[4] , intensity_umbral ) ) ; // threshold
 
             GLCHK ( glActiveTexture ( GL_TEXTURE0 ) ) ;
             GLCHK ( glBindTexture ( GL_TEXTURE_2D , hsi_tex_id ) ) ;
