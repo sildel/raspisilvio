@@ -49,6 +49,9 @@ extern VCOS_LOG_CAT_T raspitex_log_category;
  */
 typedef struct RASPITEXUTIL_SHADER_PROGRAM_T
 {
+   const char *vs_file; // vertex shader file path
+   const char *fs_file; // fragment shader file path
+
    const char *vertex_source;       /// Pointer to vertex shader source
    const char *fragment_source;     /// Pointer to fragment shader source
 
