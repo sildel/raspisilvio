@@ -51,6 +51,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <string.h>
 #include <memory.h>
 #include <unistd.h>
@@ -120,6 +121,7 @@ typedef struct
    int wantRAW;                        /// Flag for whether the JPEG metadata also contains the RAW bayer image
    char *filename;                     /// filename of output file
    char *linkname;                     /// filename of output file
+   int frameStart;                     /// First number of frame output counter
    MMAL_PARAM_THUMBNAIL_CONFIG_T thumbnailConfig;
    int verbose;                        /// !0 if want detailed run information
    int demoMode;                       /// Run app in demo mode
@@ -135,6 +137,10 @@ typedef struct
    int glCapture;                      /// Save the GL frame-buffer instead of camera output
    int settings;                       /// Request settings from the camera
    int cameraNum;                      /// Camera number
+   int burstCaptureMode;               /// Enable burst mode
+   int sensor_mode;                     /// Sensor mode. 0=auto. Check docs/forum for modes selected by other values.
+   int datetime;                       /// Use DateTime instead of frame#
+   int timestamp;                      /// Use timestamp instead of frame#
 
    RASPIPREVIEW_PARAMETERS preview_parameters;    /// Preview setup parameters
    RASPICAM_CAMERA_PARAMETERS camera_parameters; /// Camera setup parameters
@@ -185,6 +191,11 @@ static void store_exif_tag(RASPISTILL_STATE *state, const char *exif_tag);
 #define CommandGLCapture    18
 #define CommandSettings     19
 #define CommandCamSelect    20
+#define CommandBurstMode    21
+#define CommandSensorMode   22
+#define CommandDateTime     23
+#define CommandTimeStamp    24
+#define CommandFrameStart   25
 
 static COMMAND_LIST cmdline_commands[] =
 {
@@ -209,6 +220,11 @@ static COMMAND_LIST cmdline_commands[] =
    { CommandGLCapture, "-glcapture","gc", "Capture the GL frame-buffer instead of the camera image", 0},
    { CommandSettings, "-settings",  "set","Retrieve camera settings and write to stdout", 0},
    { CommandCamSelect, "-camselect","cs", "Select camera <number>. Default 0", 1 },
+   { CommandBurstMode, "-burst",    "bm", "Enable 'burst capture mode'", 0},
+   { CommandSensorMode,"-mode",     "md", "Force sensor mode. 0=auto. See docs for other modes available", 1},
+   { CommandDateTime,  "-datetime",  "dt", "Replace frame number in file name with DateTime (MonthDayHourMinSec)", 0},
+   { CommandTimeStamp, "-timestamp", "ts", "Replace frame number in file name with unix timestamp (seconds since 1900)", 0},
+   { CommandFrameStart,"-framestart","fs",  "Starting frame number in output pattern", 1},
 };
 
 static int cmdline_commands_size = sizeof(cmdline_commands) / sizeof(cmdline_commands[0]);
@@ -264,6 +280,7 @@ static void default_status(RASPISTILL_STATE *state)
    state->wantRAW = 0;
    state->filename = NULL;
    state->linkname = NULL;
+   state->frameStart = 0;
    state->verbose = 0;
    state->thumbnailConfig.enable = 1;
    state->thumbnailConfig.width = 64;
@@ -286,6 +303,10 @@ static void default_status(RASPISTILL_STATE *state)
    state->glCapture = 0;
    state->settings = 0;
    state->cameraNum = 0;
+   state->burstCaptureMode=0;
+   state->sensor_mode = 0;
+   state->datetime = 0;
+   state->timestamp = 0;
 
    // Setup preview window defaults
    raspipreview_set_defaults(&state->preview_parameters);
@@ -334,7 +355,7 @@ static void dump_status(RASPISTILL_STATE *state)
    for (i=0;i<next_frame_description_size;i++)
    {
       if (state->frameNextMethod == next_frame_description[i].nextFrameMethod)
-         fprintf(stderr, next_frame_description[i].description);
+         fprintf(stderr, "%s", next_frame_description[i].description);
    }
    fprintf(stderr, "\n\n");
 
@@ -444,6 +465,25 @@ static int parse_cmdline(int argc, const char **argv, RASPISTILL_STATE *state)
          int len = strlen(argv[i + 1]);
          if (len)
          {
+            //We use sprintf to append the frame number for timelapse mode
+            //Ensure that any %<char> is either %% or %d.
+            const char *percent = argv[i+1];
+            while(valid && *percent && (percent=strchr(percent, '%')) != NULL)
+            {
+               int digits=0;
+               percent++;
+               while(isdigit(*percent))
+               {
+                 percent++;
+                 digits++;
+               }
+               if(!((*percent == '%' && !digits) || *percent == 'd'))
+               {
+                  valid = 0;
+                  fprintf(stderr, "Filename contains %% characters, but not %%d or %%%% - sorry, will fail\n");
+               }
+               percent++;
+            }
             state->filename = malloc(len + 10); // leave enough space for any timelapse generated changes to filename
             vcos_assert(state->filename);
             if (state->filename)
@@ -471,8 +511,26 @@ static int parse_cmdline(int argc, const char **argv, RASPISTILL_STATE *state)
          break;
 
       }
+
+      case CommandFrameStart:  // use a staring value != 0
+      {
+         if (sscanf(argv[i + 1], "%u", &state->frameStart) == 1)
+         {
+           i++;
+         }
+         else
+            valid = 0;
+         break;
+      }
+
       case CommandVerbose: // display lots of data during run
          state->verbose = 1;
+         break;
+      case CommandDateTime: // use datetime
+         state->datetime = 1;
+         break;
+      case CommandTimeStamp: // use timestamp
+         state->timestamp = 1;
          break;
 
       case CommandTimeout: // Time to run viewfinder for before taking picture, in seconds
@@ -480,7 +538,7 @@ static int parse_cmdline(int argc, const char **argv, RASPISTILL_STATE *state)
          if (sscanf(argv[i + 1], "%u", &state->timeout) == 1)
          {
             // Ensure that if previously selected CommandKeypress we don't overwrite it
-            if (state->timeout == 0 && state->frameNextMethod != FRAME_NEXT_KEYPRESS)
+            if (state->timeout == 0 && state->frameNextMethod == FRAME_NEXT_SINGLE)
                state->frameNextMethod = FRAME_NEXT_FOREVER;
 
             i++;
@@ -614,6 +672,22 @@ static int parse_cmdline(int argc, const char **argv, RASPISTILL_STATE *state)
          break;
       }
 
+      case CommandBurstMode: 
+         state->burstCaptureMode=1;
+         break;
+
+      case CommandSensorMode:
+      {
+         if (sscanf(argv[i + 1], "%u", &state->sensor_mode) == 1)
+         {
+            i++;
+         }
+         else
+            valid = 0;
+         break;
+      }
+
+
       default:
       {
          // Try parsing for any image specific parameters
@@ -674,10 +748,10 @@ static int parse_cmdline(int argc, const char **argv, RASPISTILL_STATE *state)
  */
 static void display_valid_parameters(char *app_name)
 {
-   fprintf(stderr, "Runs camera for specific time, and take JPG capture at end if requested\n\n");
-   fprintf(stderr, "usage: %s [options]\n\n", app_name);
+   fprintf(stdout, "Runs camera for specific time, and take JPG capture at end if requested\n\n");
+   fprintf(stdout, "usage: %s [options]\n\n", app_name);
 
-   fprintf(stderr, "Image parameter commands\n\n");
+   fprintf(stdout, "Image parameter commands\n\n");
 
    raspicli_display_help(cmdline_commands, cmdline_commands_size);
 
@@ -690,7 +764,7 @@ static void display_valid_parameters(char *app_name)
    // Now display GL preview help
    raspitex_display_help();
 
-   fprintf(stderr, "\n");
+   fprintf(stdout, "\n");
 
    return;
 }
@@ -723,6 +797,10 @@ static void camera_control_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
          }
          break;
       }
+   }
+   else if (buffer->cmd == MMAL_EVENT_ERROR)
+   {
+      vcos_log_error("No data received from sensor. Check all connections, including the Sunny one on the camera board");
    }
    else
       vcos_log_error("Received unexpected camera control callback event, 0x%08x", buffer->cmd);
@@ -822,6 +900,16 @@ static MMAL_STATUS_T create_camera_component(RASPISTILL_STATE *state)
       goto error;
    }
 
+   status = raspicamcontrol_set_stereo_mode(camera->output[0], &state->camera_parameters.stereo_mode);
+   status += raspicamcontrol_set_stereo_mode(camera->output[1], &state->camera_parameters.stereo_mode);
+   status += raspicamcontrol_set_stereo_mode(camera->output[2], &state->camera_parameters.stereo_mode);
+
+   if (status != MMAL_SUCCESS)
+   {
+      vcos_log_error("Could not set stereo mode : error %d", status);
+      goto error;
+   }
+
    MMAL_PARAMETER_INT32_T camera_num =
       {{MMAL_PARAMETER_CAMERA_NUM, sizeof(camera_num)}, state->cameraNum};
 
@@ -837,6 +925,14 @@ static MMAL_STATUS_T create_camera_component(RASPISTILL_STATE *state)
    {
       status = MMAL_ENOSYS;
       vcos_log_error("Camera doesn't have output ports");
+      goto error;
+   }
+
+   status = mmal_port_parameter_set_uint32(camera->control, MMAL_PARAMETER_CAMERA_CUSTOM_SENSOR_CONFIG, state->sensor_mode);
+
+   if (status != MMAL_SUCCESS)
+   {
+      vcos_log_error("Could not set sensor mode : error %d", status);
       goto error;
    }
 
@@ -891,7 +987,7 @@ static MMAL_STATUS_T create_camera_component(RASPISTILL_STATE *state)
 
       mmal_port_parameter_set(camera->control, &cam_config.hdr);
    }
-
+ 
    raspicamcontrol_set_all_parameters(camera, &state->camera_parameters);
 
    // Now set up the port formats
@@ -1611,7 +1707,7 @@ int main(int argc, const char **argv)
    // Do we have any parameters
    if (argc == 1)
    {
-      fprintf(stderr, "\%s Camera App %s\n\n", basename(argv[0]), VERSION_STRING);
+      fprintf(stdout, "\%s Camera App %s\n\n", basename(argv[0]), VERSION_STRING);
 
       display_valid_parameters(basename(argv[0]));
       exit(EX_USAGE);
@@ -1734,11 +1830,34 @@ int main(int argc, const char **argv)
             char *use_filename = NULL;      // Temporary filename while image being written
             char *final_filename = NULL;    // Name that file gets once writing complete
 
-            frame = 0;
+            frame = state.frameStart;
 
             while (keep_looping)
             {
             	keep_looping = wait_for_next_frame(&state, &frame);
+
+                if (state.datetime)
+                {
+                   time_t rawtime;
+                   struct tm *timeinfo;
+
+                   time(&rawtime);
+                   timeinfo = localtime(&rawtime);
+
+                   frame = timeinfo->tm_mon+1;
+                   frame *= 100;
+                   frame += timeinfo->tm_mday;
+                   frame *= 100;
+                   frame += timeinfo->tm_hour;
+                   frame *= 100;
+                   frame += timeinfo->tm_min;
+                   frame *= 100;
+                   frame += timeinfo->tm_sec;
+                }
+                if (state.timestamp)
+                {
+                   frame = (int)time(NULL);
+                }
 
                // Open the file
                if (state.filename)
@@ -1839,6 +1958,11 @@ int main(int argc, const char **argv)
                         vcos_log_error("Unable to send a buffer to encoder output port (%d)", q);
                   }
 
+                  if (state.burstCaptureMode && frame==1)
+                  {
+                     mmal_port_parameter_set_boolean(state.camera_component->control,  MMAL_PARAMETER_CAMERA_BURST_CAPTURE, 1);
+                  }
+
                   if (state.verbose)
                      fprintf(stderr, "Starting capture %d\n", frame);
 
@@ -1862,6 +1986,10 @@ int main(int argc, const char **argv)
                   if (output_file != stdout)
                   {
                      rename_file(&state, output_file, final_filename, use_filename, frame);
+                  }
+                  else
+                  {
+                     fflush(output_file);
                   }
                   // Disable encoder output port
                   status = mmal_port_disable(encoder_output_port);
