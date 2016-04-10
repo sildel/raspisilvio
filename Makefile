@@ -235,30 +235,6 @@ RaspiTexUtil.c.s:
 	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/RaspiTexUtil.c.s
 .PHONY : RaspiTexUtil.c.s
 
-gl_scenes/matching.o: gl_scenes/matching.c.o
-.PHONY : gl_scenes/matching.o
-
-# target to build an object file
-gl_scenes/matching.c.o:
-	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.o
-.PHONY : gl_scenes/matching.c.o
-
-gl_scenes/matching.i: gl_scenes/matching.c.i
-.PHONY : gl_scenes/matching.i
-
-# target to preprocess a source file
-gl_scenes/matching.c.i:
-	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.i
-.PHONY : gl_scenes/matching.c.i
-
-gl_scenes/matching.s: gl_scenes/matching.c.s
-.PHONY : gl_scenes/matching.s
-
-# target to generate assembly for a file
-gl_scenes/matching.c.s:
-	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/gl_scenes/matching.c.s
-.PHONY : gl_scenes/matching.c.s
-
 gl_scenes/mirror.o: gl_scenes/mirror.c.o
 .PHONY : gl_scenes/mirror.o
 
@@ -427,6 +403,30 @@ main.c.s:
 	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/main.c.s
 .PHONY : main.c.s
 
+raspisilvio.o: raspisilvio.c.o
+.PHONY : raspisilvio.o
+
+# target to build an object file
+raspisilvio.c.o:
+	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/raspisilvio.c.o
+.PHONY : raspisilvio.c.o
+
+raspisilvio.i: raspisilvio.c.i
+.PHONY : raspisilvio.i
+
+# target to preprocess a source file
+raspisilvio.c.i:
+	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/raspisilvio.c.i
+.PHONY : raspisilvio.c.i
+
+raspisilvio.s: raspisilvio.c.s
+.PHONY : raspisilvio.s
+
+# target to generate assembly for a file
+raspisilvio.c.s:
+	$(MAKE) -f CMakeFiles/raspisilvio.dir/build.make CMakeFiles/raspisilvio.dir/raspisilvio.c.s
+.PHONY : raspisilvio.c.s
+
 tga.o: tga.c.o
 .PHONY : tga.o
 
@@ -475,9 +475,6 @@ help:
 	@echo "... RaspiTexUtil.o"
 	@echo "... RaspiTexUtil.i"
 	@echo "... RaspiTexUtil.s"
-	@echo "... gl_scenes/matching.o"
-	@echo "... gl_scenes/matching.i"
-	@echo "... gl_scenes/matching.s"
 	@echo "... gl_scenes/mirror.o"
 	@echo "... gl_scenes/mirror.i"
 	@echo "... gl_scenes/mirror.s"
@@ -499,6 +496,9 @@ help:
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
+	@echo "... raspisilvio.o"
+	@echo "... raspisilvio.i"
+	@echo "... raspisilvio.s"
 	@echo "... tga.o"
 	@echo "... tga.i"
 	@echo "... tga.s"

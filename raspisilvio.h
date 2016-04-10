@@ -2,20 +2,21 @@
 #ifndef RASPISILVIO_H_
 #define RASPISILVIO_H_
 ///////////////////////////////////////////////////////////////////
-// We use some GNU extensions (basename)
+// We use some GNU extensions (asprintf, basename)
 #define _GNU_SOURCE
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <memory.h>
+#include <unistd.h>
+#include <errno.h>
 #include <sysexits.h>
-////////////////////////////////////////////////////////////////////////////////
-#define VERSION_STRING "v1.3.11"
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+#define VERSION_STRING "v1.3.7"
+///////////////////////////////////////////////////////////////////////////////////////////////////
 #include "bcm_host.h"
 #include "interface/vcos/vcos.h"
-////////////////////////////////////////////////////////////////////////////////
 #include "interface/mmal/mmal.h"
 #include "interface/mmal/mmal_logging.h"
 #include "interface/mmal/mmal_buffer.h"
@@ -23,80 +24,90 @@
 #include "interface/mmal/util/mmal_util_params.h"
 #include "interface/mmal/util/mmal_default_components.h"
 #include "interface/mmal/util/mmal_connection.h"
-////////////////////////////////////////////////////////////////////////////////
 #include "RaspiCamControl.h"
 #include "RaspiPreview.h"
 #include "RaspiCLI.h"
-////////////////////////////////////////////////////////////////////////////////
-#include "opencv/cv.h"
-#include "opencv/highgui.h"
-#include "raspisilvio.h"
-////////////////////////////////////////////////////////////////////////////////
+#include "RaspiTex.h"
 #include <semaphore.h>
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Camera number to use - we only have one camera, indexed from 0.
 #define CAMERA_NUMBER 0
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 // Standard port setting for the camera component
 #define MMAL_CAMERA_PREVIEW_PORT 0
 #define MMAL_CAMERA_VIDEO_PORT 1
 #define MMAL_CAMERA_CAPTURE_PORT 2
-////////////////////////////////////////////////////////////////////////////////
-// Video format information
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Stills format information
 // 0 implies variable
-#define VIDEO_FRAME_RATE_NUM 30
-#define VIDEO_FRAME_RATE_DEN 1
-////////////////////////////////////////////////////////////////////////////////
+#define STILLS_FRAME_RATE_NUM 0
+#define STILLS_FRAME_RATE_DEN 1
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Video render needs at least 2 buffers.
 #define VIDEO_OUTPUT_BUFFERS_NUM 3
 ////////////////////////////////////////////////////////////////////////////////
-int mmal_status_to_int(MMAL_STATUS_T status);
-void signal_handler(int signal_number);
-extern int the_flag;
+#define SHADER_MAX_ATTRIBUTES 16
+#define SHADER_MAX_UNIFORMS   16
 ////////////////////////////////////////////////////////////////////////////////
-// Forward
-typedef struct RASPIVID_STATE_S RASPIVID_STATE;
-////////////////////////////////////////////////////////////////////////////////
-
 /** Structure containing all state information for the current run
  */
-struct RASPIVID_STATE_S {
+typedef struct {
     int width; /// Requested width of image
     int height; /// requested height of image
-    int bitrate; /// Requested bitrate
-    int framerate; /// Requested frame rate (fps)
-    int nCount; ///number of frames
+    int useGL; /// Render preview using OpenGL
 
+    RASPIPREVIEW_PARAMETERS preview_parameters; /// Preview setup parameters
     RASPICAM_CAMERA_PARAMETERS camera_parameters; /// Camera setup parameters
 
-    MMAL_COMPONENT_T *camera_component; /// Pointer to the camera component    
+    MMAL_COMPONENT_T *camera_component; /// Pointer to the camera component
+    MMAL_COMPONENT_T *null_sink_component; /// Pointer to the null sink component
+    MMAL_CONNECTION_T *preview_connection; /// Pointer to the connection from camera to preview
+    MMAL_CONNECTION_T *encoder_connection; /// Pointer to the connection from camera to encoder
 
-    MMAL_POOL_T *video_pool; /// Pointer to the pool of buffers used by video output port
+    RASPITEX_STATE raspitex_state; /// GL renderer state and parameters
 
-    IplImage *py;
-    IplImage *pu;
-    IplImage *pv;
-    IplImage *pu_big;
-    IplImage *pv_big;
-    IplImage *image;
-    IplImage *dstImage;
-    IplImage *imgThresh;
-    IplImage *hsvImage;
-
-    int H_min_value;
-    int S_min_value;
-    int V_min_value;
-    int H_max_value;
-    int S_max_value;
-    int V_max_value;
-};
+} RaspisilvioState;
 ////////////////////////////////////////////////////////////////////////////////
-void camera_control_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer);
-void video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer);
-MMAL_STATUS_T create_camera_component(RASPIVID_STATE *state);
-void destroy_camera_component(RASPIVID_STATE *state);
-MMAL_STATUS_T connect_ports(MMAL_PORT_T *output_port, MMAL_PORT_T *input_port, MMAL_CONNECTION_T **connection);
-void check_disable_port(MMAL_PORT_T *port);
+
+/**
+ * Container for a simple shader program. The uniform and attribute locations
+ * are automatically setup by raspitex_build_shader_program.
+ */
+typedef struct {
+    const char *vs_file; /// vertex shader file path
+    const char *fs_file; /// fragment shader file path
+    
+    const char *vertex_source; /// Pointer to vertex shader source
+    const char *fragment_source; /// Pointer to fragment shader source
+
+    /// Array of uniform names for raspitex_build_shader_program to process
+    const char *uniform_names[SHADER_MAX_UNIFORMS];
+    /// Array of attribute names for raspitex_build_shader_program to process
+    const char *attribute_names[SHADER_MAX_ATTRIBUTES];
+
+    GLint vs; /// Vertex shader handle
+    GLint fs; /// Fragment shader handle
+    GLint program; /// Shader program handle
+
+    /// The locations for uniforms defined in uniform_names
+    GLint uniform_locations[SHADER_MAX_UNIFORMS];
+
+    /// The locations for attributes defined in attribute_names
+    GLint attribute_locations[SHADER_MAX_ATTRIBUTES];
+
+} RaspisilvioShaderProgram;
 ////////////////////////////////////////////////////////////////////////////////
+
+typedef struct {
+    RaspisilvioState state;
+    int (*init)(struct RASPITEX_STATE *state);
+    int (*draw)(struct RASPITEX_STATE *state);
+} RaspisilvioApplication;
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void raspisilvioGetDefault(RaspisilvioApplication *app);
+int raspisilvioInitApp(RaspisilvioApplication *app);
+int raspisilvioStart(RaspisilvioApplication *app);
+int raspisilvioStop(RaspisilvioApplication *app);
+///////////////////////////////////////////////////////////////////////////////////////////////////
 #endif /* RASPISILVIO_H_ */
 ////////////////////////////////////////////////////////////////////////////////

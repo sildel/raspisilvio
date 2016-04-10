@@ -15,15 +15,14 @@ set (GL_SCENE_SOURCES
 	gl_scenes/yuv.c
 	gl_scenes/sobel.c
 	gl_scenes/square.c
-	gl_scenes/teapot.c
-	gl_scenes/matching.c)
+	gl_scenes/teapot.c)
 
 set (COMMON_SOURCES
 	RaspiCamControl.c
 	RaspiPreview.c
 	RaspiCLI.c)
 
-add_executable(raspisilvio ${COMMON_SOURCES} main.c RaspiTex.c RaspiTexUtil.c tga.c ${GL_SCENE_SOURCES})
+add_executable(raspisilvio ${COMMON_SOURCES} raspisilvio.c main.c RaspiTex.c RaspiTexUtil.c tga.c ${GL_SCENE_SOURCES})
 
 set (THE_LIBS
 	/home/pi/userland-master/build/lib/libmmal_core.so

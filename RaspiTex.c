@@ -49,7 +49,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gl_scenes/square.h"
 #include "gl_scenes/teapot.h"
 #include "gl_scenes/yuv.h"
-#include "gl_scenes/matching.h"
 
 /**
  * \file RaspiTex.c
@@ -569,32 +568,29 @@ int raspitex_init(RASPITEX_STATE *state)
    if (status != VCOS_SUCCESS)
       goto error;
 
-    switch ( state->scene_id )
-    {
-        case RASPITEX_SCENE_SQUARE:
-            rc = square_open ( state ) ;
-            break ;
-        case RASPITEX_SCENE_MIRROR:
-            rc = mirror_open ( state ) ;
-            break ;
-        case RASPITEX_SCENE_TEAPOT:
-            rc = teapot_open ( state ) ;
-            break ;
-        case RASPITEX_SCENE_YUV:
-            rc = yuv_open ( state ) ;
-            break ;
-        case RASPITEX_SCENE_SOBEL:
-            rc = sobel_open ( state ) ;
-            break ;
-        case RASPITEX_SCENE_MATCHING:
-            rc = matching_open ( state ) ;
-            break ;
-        default:
-            rc = - 1 ;
-            break ;
-    }
-    if ( rc != 0 )
-        goto error ;
+   switch (state->scene_id)
+   {
+      case RASPITEX_SCENE_SQUARE:
+         rc = square_open(state);
+         break;
+      case RASPITEX_SCENE_MIRROR:
+         rc = mirror_open(state);
+         break;
+      case RASPITEX_SCENE_TEAPOT:
+         rc = teapot_open(state);
+         break;
+      case RASPITEX_SCENE_YUV:
+         rc = yuv_open(state);
+         break;
+      case RASPITEX_SCENE_SOBEL:
+         rc = sobel_open(state);
+         break;
+      default:
+         rc = -1;
+         break;
+   }
+   if (rc != 0)
+      goto error;
 
    return 0;
 
@@ -639,20 +635,20 @@ void raspitex_destroy(RASPITEX_STATE *state)
  */
 void raspitex_set_defaults(RASPITEX_STATE *state)
 {
-    memset ( state , 0 , sizeof (*state ) ) ;
-    state->version_major = RASPITEX_VERSION_MAJOR ;
-    state->version_minor = RASPITEX_VERSION_MINOR ;
-    state->display = EGL_NO_DISPLAY ;
-    state->surface = EGL_NO_SURFACE ;
-    state->context = EGL_NO_CONTEXT ;
-    state->egl_image = EGL_NO_IMAGE_KHR ;
-    state->y_egl_image = EGL_NO_IMAGE_KHR ;
-    state->u_egl_image = EGL_NO_IMAGE_KHR ;
-    state->v_egl_image = EGL_NO_IMAGE_KHR ;
-    state->opacity = 255 ;
-    state->width = DEFAULT_WIDTH ;
-    state->height = DEFAULT_HEIGHT ;
-    state->scene_id = RASPITEX_SCENE_MATCHING ;
+   memset(state, 0, sizeof(*state));
+   state->version_major = RASPITEX_VERSION_MAJOR;
+   state->version_minor = RASPITEX_VERSION_MINOR;
+   state->display = EGL_NO_DISPLAY;
+   state->surface = EGL_NO_SURFACE;
+   state->context = EGL_NO_CONTEXT;
+   state->egl_image = EGL_NO_IMAGE_KHR;
+   state->y_egl_image = EGL_NO_IMAGE_KHR;
+   state->u_egl_image = EGL_NO_IMAGE_KHR;
+   state->v_egl_image = EGL_NO_IMAGE_KHR;
+   state->opacity = 255;
+   state->width = DEFAULT_WIDTH;
+   state->height = DEFAULT_HEIGHT;
+   state->scene_id = RASPITEX_SCENE_SQUARE;
 
    state->ops.create_native_window = raspitexutil_create_native_window;
    state->ops.gl_init = raspitexutil_gl_init_1_0;
