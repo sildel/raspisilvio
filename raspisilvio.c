@@ -1,39 +1,50 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Created by
 // Jorge Silvio Delgado Morales
-// based on raspicam applications of userland.git in raspberrypi repo at github
+// based on raspicam applications of https://github.com/raspberrypi/userland
 // silviodelgado70@gmail.com
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+#include "RaspiTexUtil.h"
 #include "raspisilvio.h"
 #include <GLES2/gl2.h>
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-static const EGLint matching_egl_config_attribs[] = {
-    EGL_RED_SIZE, 8,
-    EGL_GREEN_SIZE, 8,
-    EGL_BLUE_SIZE, 8,
-    EGL_ALPHA_SIZE, 8,
-    EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-    EGL_NONE
+const EGLint raspisilvio_matching_egl_config_attribs[] = {
+        EGL_RED_SIZE, 8,
+        EGL_GREEN_SIZE, 8,
+        EGL_BLUE_SIZE, 8,
+        EGL_ALPHA_SIZE, 8,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+        EGL_NONE
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static RaspisilvioShaderProgram preview_shader = {
-    .vs_file = "gl_scenes/simpleVS.glsl",
-    .fs_file = "gl_scenes/simpleEFS.glsl",
-    .vertex_source = "",
-    .fragment_source = "",
-    .uniform_names =
-    {"tex"},
-    .attribute_names =
-    {"vertex"},
+        .vs_file = "gl_scenes/simpleVS.glsl",
+        .fs_file = "gl_scenes/simpleEFS.glsl",
+        .vertex_source = "",
+        .fragment_source = "",
+        .uniform_names =
+                {"tex"},
+        .attribute_names =
+                {"vertex"},
+};
+///////////////////////////////////////////////////////////////////////////////////////////////////
+RaspisilvioShaderProgram result_shader = {
+        .vs_file = "gl_scenes/simpleVS.glsl",
+        .fs_file = "gl_scenes/simpleFS.glsl",
+        .vertex_source = "",
+        .fragment_source = "",
+        .uniform_names =
+                {"tex"},
+        .attribute_names =
+                {"vertex"},
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static GLuint quad_vbo;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static GLfloat quad_varray[] = {
-    -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, -1.0f,
-    -1.0f, 1.0f, 1.0f, 1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, -1.0f,
+        -1.0f, 1.0f, 1.0f, 1.0f, -1.0f, -1.0f,
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -125,17 +136,17 @@ static MMAL_STATUS_T create_camera_component(RaspisilvioState *state) {
     //  set up the camera configuration
     {
         MMAL_PARAMETER_CAMERA_CONFIG_T cam_config = {
-            { MMAL_PARAMETER_CAMERA_CONFIG, sizeof (cam_config)},
-            .max_stills_w = state->width,
-            .max_stills_h = state->height,
-            .stills_yuv422 = 0,
-            .one_shot_stills = 1,
-            .max_preview_video_w = state->preview_parameters.previewWindow.width,
-            .max_preview_video_h = state->preview_parameters.previewWindow.height,
-            .num_preview_video_frames = 3,
-            .stills_capture_circular_buffer_height = 0,
-            .fast_preview_resume = 0,
-            .use_stc_timestamp = MMAL_PARAM_TIMESTAMP_MODE_RESET_STC
+                {MMAL_PARAMETER_CAMERA_CONFIG, sizeof(cam_config)},
+                .max_stills_w = state->width,
+                .max_stills_h = state->height,
+                .stills_yuv422 = 0,
+                .one_shot_stills = 1,
+                .max_preview_video_w = state->preview_parameters.previewWindow.width,
+                .max_preview_video_h = state->preview_parameters.previewWindow.height,
+                .num_preview_video_frames = 3,
+                .stills_capture_circular_buffer_height = 0,
+                .fast_preview_resume = 0,
+                .use_stc_timestamp = MMAL_PARAM_TIMESTAMP_MODE_RESET_STC
         };
 
         mmal_port_parameter_set(camera->control, &cam_config.hdr);
@@ -221,7 +232,7 @@ static MMAL_STATUS_T create_camera_component(RaspisilvioState *state) {
 
     return status;
 
-error:
+    error:
 
     if (camera)
         mmal_component_destroy(camera);
@@ -300,7 +311,7 @@ static int raspisilvio_build_shader_program(RaspisilvioShaderProgram *p) {
     glCompileShader(p->vs);
     glGetShaderiv(p->vs, GL_COMPILE_STATUS, &status);
     if (!status) {
-        glGetShaderInfoLog(p->vs, sizeof (log), &logLen, log);
+        glGetShaderInfoLog(p->vs, sizeof(log), &logLen, log);
         vcos_log_error("Program info log %s", log);
         goto fail;
     }
@@ -311,7 +322,7 @@ static int raspisilvio_build_shader_program(RaspisilvioShaderProgram *p) {
 
     glGetShaderiv(p->fs, GL_COMPILE_STATUS, &status);
     if (!status) {
-        glGetShaderInfoLog(p->fs, sizeof (log), &logLen, log);
+        glGetShaderInfoLog(p->fs, sizeof(log), &logLen, log);
         vcos_log_error("Program info log %s", log);
         goto fail;
     }
@@ -323,7 +334,7 @@ static int raspisilvio_build_shader_program(RaspisilvioShaderProgram *p) {
     glGetProgramiv(p->program, GL_LINK_STATUS, &status);
     if (!status) {
         vcos_log_error("Failed to link shader program");
-        glGetProgramInfoLog(p->program, sizeof (log), &logLen, log);
+        glGetProgramInfoLog(p->program, sizeof(log), &logLen, log);
         vcos_log_error("Program info log %s", log);
         goto fail;
     }
@@ -334,11 +345,11 @@ static int raspisilvio_build_shader_program(RaspisilvioShaderProgram *p) {
         p->attribute_locations[i] = glGetAttribLocation(p->program, p->attribute_names[i]);
         if (p->attribute_locations[i] == -1) {
             vcos_log_error("Failed to get location for attribute %s",
-                    p->attribute_names[i]);
+                           p->attribute_names[i]);
             goto fail;
         } else {
             vcos_log_trace("Attribute for %s is %d",
-                    p->attribute_names[i], p->attribute_locations[i]);
+                           p->attribute_names[i], p->attribute_locations[i]);
         }
     }
 
@@ -348,17 +359,17 @@ static int raspisilvio_build_shader_program(RaspisilvioShaderProgram *p) {
         p->uniform_locations[i] = glGetUniformLocation(p->program, p->uniform_names[i]);
         if (p->uniform_locations[i] == -1) {
             vcos_log_error("Failed to get location for uniform %s",
-                    p->uniform_names[i]);
+                           p->uniform_names[i]);
             goto fail;
         } else {
             vcos_log_trace("Uniform for %s is %d",
-                    p->uniform_names[i], p->uniform_locations[i]);
+                           p->uniform_names[i], p->uniform_locations[i]);
         }
     }
 
     return 0;
 
-fail:
+    fail:
     vcos_log_error("%s: Failed to build shader program", VCOS_FUNCTION);
     if (p) {
         glDeleteProgram(p->program);
@@ -369,10 +380,10 @@ fail:
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-static void LoadShader(RaspisilvioShaderProgram *shader) {
+void raspisilvioLoadShader(RaspisilvioShaderProgram *shader) {
     char *vs_source = NULL;
     char *fs_source = NULL;
-    FILE * f;
+    FILE *f;
     int sz;
 
     assert(!vs_source);
@@ -411,7 +422,7 @@ static void LoadShader(RaspisilvioShaderProgram *shader) {
  * @param raspitex_state A pointer to the GL preview state.
  * @return Zero.
  */
-static int raspisilvio_update_model(RASPITEX_STATE* raspitex_state) {
+static int raspisilvio_update_model(RASPITEX_STATE *raspitex_state) {
     (void) raspitex_state;
     return 0;
 }
@@ -426,19 +437,19 @@ static int raspisilvio_init(RASPITEX_STATE *raspitex_state) {
     int rc = 0;
 
     vcos_log_trace("%s", VCOS_FUNCTION);
-    raspitex_state->egl_config_attribs = matching_egl_config_attribs;
+    raspitex_state->egl_config_attribs = raspisilvio_matching_egl_config_attribs;
     rc = raspitexutil_gl_init_2_0(raspitex_state);
     if (rc != 0)
         goto end;
 
-    LoadShader(&preview_shader);
+    raspisilvioLoadShader(&preview_shader);
 
     glGenBuffers(1, &quad_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, quad_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof (quad_varray), quad_varray, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quad_varray), quad_varray, GL_STATIC_DRAW);
     glClearColor(0, 0, 0, 0);
 
-end:
+    end:
     return rc;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -448,7 +459,7 @@ end:
  * @param raspitex_state A pointer to the GL preview state.
  * @return Zero if successful.
  */
-static int raspisilvio_draw(RASPITEX_STATE* state) {
+static int raspisilvio_draw(RASPITEX_STATE *state) {
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, state->width, state->height);
@@ -539,5 +550,103 @@ int raspisilvioStop(RaspisilvioApplication *app) {
         mmal_component_disable(app->state.camera_component);
 
     destroy_camera_component(&app->state);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+int raspisilvioInitHelp(RASPITEX_STATE *state) {
+    int rc = 0;
+
+    vcos_log_trace("%s", VCOS_FUNCTION);
+    state->egl_config_attribs = raspisilvio_matching_egl_config_attribs;
+    rc = raspitexutil_gl_init_2_0(state);
+
+    raspisilvioLoadShader(&preview_shader);
+    raspisilvioLoadShader(&result_shader);
+
+    glGenBuffers(1, &quad_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, quad_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quad_varray), quad_varray, GL_STATIC_DRAW);
+    glClearColor(0, 0, 0, 0);
+
+    return rc;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+int raspisilvioDrawHelp(RASPITEX_STATE *state) {
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, state->width, state->height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glUseProgram(preview_shader.program);
+    glUniform1i(preview_shader.uniform_locations[0], 0);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, state->texture);
+    glBindBuffer(GL_ARRAY_BUFFER, quad_vbo);
+    glEnableVertexAttribArray(preview_shader.attribute_locations[0]);
+    glVertexAttribPointer(preview_shader.attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+GLuint raspisilvioGetQuad() {
+    return quad_vbo;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+RaspisilvioShaderProgram *raspisilvioGetResultShader() {
+    return &result_shader;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void raspisilvioInitHist(RaspisilvioHistogram *hist, int b_width) {
+    hist->bin_width = b_width;
+    hist->count = 0;
+
+    int i;
+    for (i = 0; i < 257; i++) {
+        hist->bins[i] = 0;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void raspisilvioWriteHistToTexture(RaspisilvioHistogram *hist, uint8_t *text) {
+    int i, aux;
+    int n_bins = 255 / hist->bin_width + 1;
+
+    for (i = 0; i < n_bins; i++) {
+        int sum = hist->bins[i] + hist->bins[i + 1];
+        if (i) {
+            sum += hist->bins[i - 1];
+        }
+        sum /= 3;
+
+        text[4 * i + 3] = sum / 1000000 + 10;
+        aux = sum % 1000000;
+        text[4 * i + 2] = aux / 10000 + 10;
+        aux = aux % 10000;
+        text[4 * i + 1] = aux / 100 + 10;
+        text[4 * i] = aux % 100 + 10;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+int raspisilvioGetHistogramFilteredValue(RaspisilvioHistogram *hist, int value) {
+    int bin_index = value / hist->bin_width;
+    int average;
+
+    if (bin_index) {
+
+        average = (hist->bins[bin_index] +
+                   hist->bins[bin_index + 1] +
+                   hist->bins[bin_index - 1]) / 3;
+    }
+    else {
+        average = (hist->bins[bin_index] +
+                   hist->bins[bin_index + 1]) / 3;
+    }
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////

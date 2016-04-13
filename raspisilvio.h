@@ -104,10 +104,24 @@ typedef struct {
     int (*draw)(struct RASPITEX_STATE *state);
 } RaspisilvioApplication;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+typedef struct {
+    int bins[257];
+    int bin_width;
+    int count;
+} RaspisilvioHistogram;
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void raspisilvioGetDefault(RaspisilvioApplication *app);
 int raspisilvioInitApp(RaspisilvioApplication *app);
 int raspisilvioStart(RaspisilvioApplication *app);
 int raspisilvioStop(RaspisilvioApplication *app);
+void raspisilvioLoadShader(RaspisilvioShaderProgram *shader);
+int raspisilvioInitHelp(RASPITEX_STATE *state);
+int raspisilvioDrawHelp(RASPITEX_STATE *state);
+GLuint raspisilvioGetQuad();
+RaspisilvioShaderProgram *raspisilvioGetResultShader();
+void raspisilvioInitHist ( RaspisilvioHistogram * hist , int b_width );
+void raspisilvioWriteHistToTexture ( RaspisilvioHistogram * hist , uint8_t * text );
+int raspisilvioGetHistogramFilteredValue(RaspisilvioHistogram *hist, int value);
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #endif /* RASPISILVIO_H_ */
 ////////////////////////////////////////////////////////////////////////////////
