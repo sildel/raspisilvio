@@ -572,20 +572,20 @@ int raspisilvioInitHelp(RASPITEX_STATE *state) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-int raspisilvioDrawHelp(RASPITEX_STATE *state) {
+int raspisilvioHelpDraw(RASPITEX_STATE *state) {
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, state->width, state->height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glUseProgram(preview_shader.program);
-    glUniform1i(preview_shader.uniform_locations[0], 0);
+    glUseProgram(raspisilvioGetPreviewShader()->program);
+    glUniform1i(raspisilvioGetPreviewShader()->uniform_locations[0], 0);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, state->texture);
-    glBindBuffer(GL_ARRAY_BUFFER, quad_vbo);
-    glEnableVertexAttribArray(preview_shader.attribute_locations[0]);
-    glVertexAttribPointer(preview_shader.attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, raspisilvioGetQuad());
+    glEnableVertexAttribArray(raspisilvioGetPreviewShader()->attribute_locations[0]);
+    glVertexAttribPointer(raspisilvioGetPreviewShader()->attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
     return 0;
@@ -599,6 +599,11 @@ GLuint raspisilvioGetQuad() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 RaspisilvioShaderProgram *raspisilvioGetResultShader() {
     return &result_shader;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+RaspisilvioShaderProgram *raspisilvioGetPreviewShader() {
+    return &preview_shader;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -648,5 +653,278 @@ int raspisilvioGetHistogramFilteredValue(RaspisilvioHistogram *hist, int value) 
         average = (hist->bins[bin_index] +
                    hist->bins[bin_index + 1]) / 3;
     }
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/* Create a texture.
+ *
+ * @param name The name of the texture.
+ * @param onlyName Generate only the name of the texture.
+ * @param width Width of the texture.
+ * @param height Height of the texture.
+ * @param data The data containing pixel data
+ * @param format The data format of the pixels
+ * @return void.
+ */
+void raspisilvioCreateTexture(GLuint *name, int onlyName, int width, int height, uint8_t *data, int format) {
+    GLCHK(glEnable(GL_TEXTURE_2D));
+    GLCHK(glGenTextures(1, name));
+
+    if (onlyName) {
+        return;
+    }
+
+    GLCHK(glBindTexture(GL_TEXTURE_2D, *name));
+    GLCHK(glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data));
+    GLCHK(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (GLfloat) GL_NEAREST));
+    GLCHK(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (GLfloat) GL_NEAREST));
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/* Create a texture to be used as a frame buffer.
+ *
+ * @param name The name of the texture.
+ * @param onlyName Generate only the name of the texture.
+ * @param width Width of the texture.
+ * @param height Height of the texture.
+ * @param data The data containing pixel data
+ * @param format The data format of the pixels
+ * @return void.
+ */
+void raspisilvioCreateTextureFB(GLuint *nameTexture, int width, int height, uint8_t *data, int format,
+                                GLuint *nameFB) {
+    GLCHK(glEnable(GL_TEXTURE_2D));
+    GLCHK(glGenTextures(1, nameTexture));
+
+    GLCHK(glBindTexture(GL_TEXTURE_2D, *nameTexture));
+    GLCHK(glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data));
+    GLCHK(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (GLfloat) GL_NEAREST));
+    GLCHK(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (GLfloat) GL_NEAREST));
+
+    GLCHK(glGenFramebuffers(1, nameFB));
+    GLCHK(glBindFramebuffer(GL_FRAMEBUFFER, *nameFB));
+    GLCHK(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, *nameTexture, 0));
+    GLCHK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/* Allocate memory for texture data. Note: Only RGBA format allowed.
+ *
+ * @param data The pointer to save data allocation.
+ * @param onlyName Generate only the name of the texture.
+ * @param width Width of the texture.
+ * @param height Height of the texture.
+ * @param format The data format of the pixels
+ * @return void.
+ */
+void raspisilvioCreateTextureData(uint8_t *data, int32_t width, int32_t height, int format) {
+    if (format == GL_RGBA) {
+        data = malloc(width * height * 4);
+    }
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/* Do processing to the camera feed using the specified shader program and put it on the specified frame buffer.
+ * The shader is expected to have these parameters:
+ * 1 - First attribute is the vertex and should contains only x and y coordinates
+ * 2 - First uniform is the texture unit and the type should be samplerExternalOES
+ * 3 - Second uniform is the dimension of the pixel in texture coordinates
+ *
+ * @param shader The shader to be used.
+ * @param state The state of the application.
+ * @param frameBuffer The name of the frame buffer.
+ * @return void.
+ */
+void raspisilvioProcessingCamera(RaspisilvioShaderProgram *shader, RASPITEX_STATE *state, GLuint frameBuffer) {
+    GLCHK(glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer));
+    glViewport(0, 0, state->width, state->height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    GLCHK(glUseProgram(shader->program));
+    GLCHK(glUniform1i(shader->uniform_locations[0], 0)); // Texture unit
+    /* Dimensions of a single pixel in texture co-ordinates */
+    GLCHK(glUniform2f(shader->uniform_locations[1], 1.0 / (float) state->width,
+                      1.0 / (float) state->height));
+    GLCHK(glActiveTexture(GL_TEXTURE0));
+    GLCHK(glBindTexture(GL_TEXTURE_EXTERNAL_OES, state->texture));
+    GLCHK(glBindBuffer(GL_ARRAY_BUFFER, raspisilvioGetQuad()));
+    GLCHK(glEnableVertexAttribArray(shader->attribute_locations[0]));
+    GLCHK(glVertexAttribPointer(shader->attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0));
+    GLCHK(glDrawArrays(GL_TRIANGLES, 0, 6));
+    glFlush();
+    glFinish();
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/* Do processing to the camera feed using the specified shader program and put it on the specified frame buffer.
+ * At the same time it applies a mask (i.e.  Don't process the pixel indicated in the mask).
+ * The shader is expected to have these parameters:
+ * 1 - First attribute is the vertex and should contains only x and y coordinates
+ * 2 - First uniform is the texture unit and the type should be samplerExternalOES
+ * 3 - Second uniform is the dimension of the pixel in texture coordinates
+ *
+ * @param shader The shader to be used.
+ * @param state The state of the application.
+ * @param maskName The mask to be applied.
+ * @param frameBuffer The name of the frame buffer. *
+ * @return void.
+ */
+void raspisilvioProcessingCameraMask(RaspisilvioShaderProgram *shader, RASPITEX_STATE *state, GLuint maskName,
+                                     GLuint frameBuffer) {
+    // TODO : implement
+    GLCHK(glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer));
+    glViewport(0, 0, state->width, state->height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    GLCHK(glUseProgram(shader->program));
+    GLCHK(glUniform1i(shader->uniform_locations[0], 0)); // Texture unit
+    /* Dimensions of a single pixel in texture co-ordinates */
+    GLCHK(glUniform2f(shader->uniform_locations[1], 1.0 / (float) state->width,
+                      1.0 / (float) state->height));
+    GLCHK(glActiveTexture(GL_TEXTURE0));
+    GLCHK(glBindTexture(GL_TEXTURE_EXTERNAL_OES, state->texture));
+    GLCHK(glBindBuffer(GL_ARRAY_BUFFER, raspisilvioGetQuad()));
+    GLCHK(glEnableVertexAttribArray(shader->attribute_locations[0]));
+    GLCHK(glVertexAttribPointer(shader->attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0));
+    GLCHK(glDrawArrays(GL_TRIANGLES, 0, 6));
+    glFlush();
+    glFinish();
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/* Put the camera feed on the screen.
+ *
+ * @param state The state of the application.
+ * @return void.
+ */
+void raspisilvioDrawCamera(RASPITEX_STATE *state) {
+    raspisilvioHelpDraw(state);
+
+    glFlush();
+    glFinish();
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/* Apply a mask to the texture and put the result in the specified frame buffer.
+ *
+ * @param state The state of the application.
+ * @param maskName The mask to be applied.
+ * @param frameBuffer The name of the frame buffer. *
+ * @return void.
+ */
+void raspisilvioCameraMask(RASPITEX_STATE *state, GLuint maskName, GLuint frameBuffer) {
+    // TODO : implement
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/* Do processing to a texture using the specified shader program and put it on the specified frame buffer.
+ * The shader is expected to have these parameters:
+ * 1 - First attribute is the vertex and should contains only x and y coordinates
+ * 2 - First uniform is the texture unit and the type should be sampler2D
+ * 3 - Second uniform is the dimension of the pixel in texture coordinates
+ *
+ * @param shader The shader to be used.
+ * @param state The state of the application.
+ * @param frameBuffer The name of the frame buffer.
+ * @param textureName The name of the texture.
+ * @return void.
+ */
+void raspisilvioProcessingTexture(RaspisilvioShaderProgram *shader, RASPITEX_STATE *state, GLuint frameBuffer,
+                                  GLuint textureName) {
+    GLCHK(glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer));
+    glViewport(0, 0, state->width, state->height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    GLCHK(glUseProgram(shader->program));
+    GLCHK(glUniform1i(shader->uniform_locations[0], 0)); // Texture unit
+    /* Dimensions of a single pixel in texture co-ordinates */
+    GLCHK(glUniform2f(shader->uniform_locations[1], 1.0 / (float) state->width,
+                      1.0 / (float) state->height));
+    GLCHK(glActiveTexture(GL_TEXTURE0));
+    GLCHK(glBindTexture(GL_TEXTURE_2D, textureName));
+    GLCHK(glBindBuffer(GL_ARRAY_BUFFER, raspisilvioGetQuad()));
+    GLCHK(glEnableVertexAttribArray(shader->attribute_locations[0]));
+    GLCHK(glVertexAttribPointer(shader->attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0));
+    GLCHK(glDrawArrays(GL_TRIANGLES, 0, 6));
+    glFlush();
+    glFinish();
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/* Do processing to a texture using the specified shader program and put it on the specified frame buffer.
+ * At the same time it applies a mask (i.e.  Don't process the pixel indicated in the mask).
+ * The shader is expected to have these parameters:
+ * 1 - First attribute is the vertex and should contains only x and y coordinates
+ * 2 - First uniform is the texture unit and the type should be sampler2D
+ * 3 - Second uniform is the dimension of the pixel in texture coordinates
+ *
+ * @param shader The shader to be used.
+ * @param state The state of the application.
+ * @param maskName The mask to be applied.
+ * @param frameBuffer The name of the frame buffer.
+ * @param textureName The name of the texture.
+ * @return void.
+ */
+void raspisilvioProcessingTextureMask(RaspisilvioShaderProgram *shader, RASPITEX_STATE *state, GLuint maskName,
+                                      GLuint frameBuffer, GLuint textureName) {
+    // TODO: implement
+    GLCHK(glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer));
+    glViewport(0, 0, state->width, state->height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    GLCHK(glUseProgram(shader->program));
+    GLCHK(glUniform1i(shader->uniform_locations[0], 0)); // Texture unit
+    /* Dimensions of a single pixel in texture co-ordinates */
+    GLCHK(glUniform2f(shader->uniform_locations[1], 1.0 / (float) state->width,
+                      1.0 / (float) state->height));
+    GLCHK(glActiveTexture(GL_TEXTURE0));
+    GLCHK(glBindTexture(GL_TEXTURE_2D, textureName));
+    GLCHK(glBindBuffer(GL_ARRAY_BUFFER, raspisilvioGetQuad()));
+    GLCHK(glEnableVertexAttribArray(shader->attribute_locations[0]));
+    GLCHK(glVertexAttribPointer(shader->attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0));
+    GLCHK(glDrawArrays(GL_TRIANGLES, 0, 6));
+    glFlush();
+    glFinish();
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/* Put the texture on the screen.
+ *
+ * @param state The state of the application.
+ * @return void.
+ */
+void raspisilvioDrawTexture(RASPITEX_STATE *state, GLuint textureName) {
+    GLCHK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+    glViewport(0, 0, state->width, state->height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    GLCHK(glUseProgram(raspisilvioGetResultShader()->program));
+    GLCHK(glUniform1i(raspisilvioGetResultShader()->uniform_locations[0], 0)); // Texture unit
+    GLCHK(glActiveTexture(GL_TEXTURE0));
+    GLCHK(glBindTexture(GL_TEXTURE_2D, textureName));
+    GLCHK(glBindBuffer(GL_ARRAY_BUFFER, raspisilvioGetQuad()));
+    GLCHK(glEnableVertexAttribArray(raspisilvioGetResultShader()->attribute_locations[0]));
+    GLCHK(glVertexAttribPointer(raspisilvioGetResultShader()->attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0));
+    GLCHK(glDrawArrays(GL_TRIANGLES, 0, 6));
+    glFlush();
+    glFinish();
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/* Apply a mask to the texture and put the result in the specified frame buffer.
+ *
+ * @param state The state of the application.
+ * @param maskName The mask to be applied.
+ * @param frameBuffer The name of the frame buffer.
+ * @param textureName The name of the texture.
+ * @return void.
+ */
+void raspisilvioTextureMask(RASPITEX_STATE *state, GLuint maskName, GLuint frameBuffer, GLuint textureName) {
+    // TODO : implement
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/* Set the pixels data for a texture.
+ *
+ * @param name The name of the texture.
+ * @param width Width of the texture.
+ * @param height Height of the texture.
+ * @param data The data containing pixel data
+ * @param format The data format of the pixels
+ * @return void.
+ */
+void raspisilvioSetTextureData(GLuint name, int width, int height, uint8_t *data, int format) {
+    GLCHK(glBindTexture(GL_TEXTURE_2D, name));
+    GLCHK(glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data));
+    GLCHK(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (GLfloat) GL_NEAREST));
+    GLCHK(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (GLfloat) GL_NEAREST));
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////

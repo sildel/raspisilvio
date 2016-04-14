@@ -76,7 +76,7 @@ typedef struct {
 typedef struct {
     const char *vs_file; /// vertex shader file path
     const char *fs_file; /// fragment shader file path
-    
+
     const char *vertex_source; /// Pointer to vertex shader source
     const char *fragment_source; /// Pointer to fragment shader source
 
@@ -100,7 +100,9 @@ typedef struct {
 
 typedef struct {
     RaspisilvioState state;
+
     int (*init)(struct RASPITEX_STATE *state);
+
     int (*draw)(struct RASPITEX_STATE *state);
 } RaspisilvioApplication;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -109,19 +111,61 @@ typedef struct {
     int bin_width;
     int count;
 } RaspisilvioHistogram;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void raspisilvioGetDefault(RaspisilvioApplication *app);
+
 int raspisilvioInitApp(RaspisilvioApplication *app);
+
 int raspisilvioStart(RaspisilvioApplication *app);
+
 int raspisilvioStop(RaspisilvioApplication *app);
+
 void raspisilvioLoadShader(RaspisilvioShaderProgram *shader);
+
 int raspisilvioInitHelp(RASPITEX_STATE *state);
-int raspisilvioDrawHelp(RASPITEX_STATE *state);
+
+int raspisilvioHelpDraw(RASPITEX_STATE *state);
+
 GLuint raspisilvioGetQuad();
+
 RaspisilvioShaderProgram *raspisilvioGetResultShader();
-void raspisilvioInitHist ( RaspisilvioHistogram * hist , int b_width );
-void raspisilvioWriteHistToTexture ( RaspisilvioHistogram * hist , uint8_t * text );
+
+RaspisilvioShaderProgram *raspisilvioGetPreviewShader();
+
+void raspisilvioInitHist(RaspisilvioHistogram *hist, int b_width);
+
+void raspisilvioWriteHistToTexture(RaspisilvioHistogram *hist, uint8_t *text);
+
 int raspisilvioGetHistogramFilteredValue(RaspisilvioHistogram *hist, int value);
+
+void raspisilvioCreateTexture(GLuint *name, int onlyName, int width, int height, uint8_t *data, int format);
+
+void raspisilvioCreateTextureFB(GLuint *nameTexture, int width, int height, uint8_t *data, int format,
+                                GLuint *nameFB);
+
+void raspisilvioCreateTextureData(uint8_t *fb, int32_t width, int32_t height, int format);
+
+void raspisilvioSetTextureData(GLuint name, int width, int height, uint8_t *data, int format);
+
+void raspisilvioProcessingCamera(RaspisilvioShaderProgram *shader, RASPITEX_STATE *state, GLuint frameBuffer);
+
+void raspisilvioProcessingCameraMask(RaspisilvioShaderProgram *shader, RASPITEX_STATE *state, GLuint maskName,
+                                     GLuint frameBuffer);
+
+void raspisilvioDrawCamera(RASPITEX_STATE *state);
+
+void raspisilvioCameraMask(RASPITEX_STATE *state, GLuint maskName, GLuint frameBuffer);
+
+void raspisilvioProcessingTexture(RaspisilvioShaderProgram *shader, RASPITEX_STATE *state, GLuint frameBuffer,
+                                  GLuint textureName);
+
+void raspisilvioProcessingTextureMask(RaspisilvioShaderProgram *shader, RASPITEX_STATE *state, GLuint maskName,
+                                      GLuint frameBuffer, GLuint textureName);
+
+void raspisilvioDrawTexture(RASPITEX_STATE *state, GLuint textureName);
+
+void raspisilvioTextureMask(RASPITEX_STATE *state, GLuint maskName, GLuint frameBuffer, GLuint textureName);
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #endif /* RASPISILVIO_H_ */
 ////////////////////////////////////////////////////////////////////////////////
