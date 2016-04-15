@@ -553,6 +553,7 @@ int raspisilvioStop(RaspisilvioApplication *app) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 int raspisilvioInitHelp(RASPITEX_STATE *state) {
     int rc = 0;
 
@@ -572,6 +573,7 @@ int raspisilvioInitHelp(RASPITEX_STATE *state) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 int raspisilvioHelpDraw(RASPITEX_STATE *state) {
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -592,21 +594,25 @@ int raspisilvioHelpDraw(RASPITEX_STATE *state) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 GLuint raspisilvioGetQuad() {
     return quad_vbo;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 RaspisilvioShaderProgram *raspisilvioGetResultShader() {
     return &result_shader;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 RaspisilvioShaderProgram *raspisilvioGetPreviewShader() {
     return &preview_shader;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 void raspisilvioInitHist(RaspisilvioHistogram *hist, int b_width) {
     hist->bin_width = b_width;
     hist->count = 0;
@@ -618,6 +624,7 @@ void raspisilvioInitHist(RaspisilvioHistogram *hist, int b_width) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 void raspisilvioWriteHistToTexture(RaspisilvioHistogram *hist, uint8_t *text) {
     int i, aux;
     int n_bins = 255 / hist->bin_width + 1;
@@ -639,6 +646,7 @@ void raspisilvioWriteHistToTexture(RaspisilvioHistogram *hist, uint8_t *text) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 int raspisilvioGetHistogramFilteredValue(RaspisilvioHistogram *hist, int value) {
     int bin_index = value / hist->bin_width;
     int average;
@@ -648,13 +656,13 @@ int raspisilvioGetHistogramFilteredValue(RaspisilvioHistogram *hist, int value) 
         average = (hist->bins[bin_index] +
                    hist->bins[bin_index + 1] +
                    hist->bins[bin_index - 1]) / 3;
-    }
-    else {
+    } else {
         average = (hist->bins[bin_index] +
                    hist->bins[bin_index + 1]) / 3;
     }
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 /* Create a texture.
  *
  * @param name The name of the texture.
@@ -679,6 +687,7 @@ void raspisilvioCreateTexture(GLuint *name, int onlyName, int width, int height,
     GLCHK(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (GLfloat) GL_NEAREST));
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 /* Create a texture to be used as a frame buffer.
  *
  * @param name The name of the texture.
@@ -705,6 +714,7 @@ void raspisilvioCreateTextureFB(GLuint *nameTexture, int width, int height, uint
     GLCHK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 /* Allocate memory for texture data. Note: Only RGBA format allowed.
  *
  * @param data The pointer to save data allocation.
@@ -720,6 +730,7 @@ void raspisilvioCreateTextureData(uint8_t *data, int32_t width, int32_t height, 
     }
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 /* Do processing to the camera feed using the specified shader program and put it on the specified frame buffer.
  * The shader is expected to have these parameters:
  * 1 - First attribute is the vertex and should contains only x and y coordinates
@@ -751,6 +762,7 @@ void raspisilvioProcessingCamera(RaspisilvioShaderProgram *shader, RASPITEX_STAT
     glFinish();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 /* Do processing to the camera feed using the specified shader program and put it on the specified frame buffer.
  * At the same time it applies a mask (i.e.  Don't process the pixel indicated in the mask).
  * The shader is expected to have these parameters:
@@ -786,6 +798,7 @@ void raspisilvioProcessingCameraMask(RaspisilvioShaderProgram *shader, RASPITEX_
     glFinish();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 /* Put the camera feed on the screen.
  *
  * @param state The state of the application.
@@ -798,6 +811,7 @@ void raspisilvioDrawCamera(RASPITEX_STATE *state) {
     glFinish();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 /* Apply a mask to the texture and put the result in the specified frame buffer.
  *
  * @param state The state of the application.
@@ -807,8 +821,10 @@ void raspisilvioDrawCamera(RASPITEX_STATE *state) {
  */
 void raspisilvioCameraMask(RASPITEX_STATE *state, GLuint maskName, GLuint frameBuffer) {
     // TODO : implement
+    raspisilvioDrawCamera(state);
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 /* Do processing to a texture using the specified shader program and put it on the specified frame buffer.
  * The shader is expected to have these parameters:
  * 1 - First attribute is the vertex and should contains only x and y coordinates
@@ -842,6 +858,7 @@ void raspisilvioProcessingTexture(RaspisilvioShaderProgram *shader, RASPITEX_STA
     glFinish();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 /* Do processing to a texture using the specified shader program and put it on the specified frame buffer.
  * At the same time it applies a mask (i.e.  Don't process the pixel indicated in the mask).
  * The shader is expected to have these parameters:
@@ -878,6 +895,7 @@ void raspisilvioProcessingTextureMask(RaspisilvioShaderProgram *shader, RASPITEX
     glFinish();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 /* Put the texture on the screen.
  *
  * @param state The state of the application.
@@ -900,6 +918,7 @@ void raspisilvioDrawTexture(RASPITEX_STATE *state, GLuint textureName) {
     glFinish();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 /* Apply a mask to the texture and put the result in the specified frame buffer.
  *
  * @param state The state of the application.
@@ -912,6 +931,7 @@ void raspisilvioTextureMask(RASPITEX_STATE *state, GLuint maskName, GLuint frame
     // TODO : implement
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 /* Set the pixels data for a texture.
  *
  * @param name The name of the texture.

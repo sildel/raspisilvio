@@ -9,6 +9,7 @@
 #include <GLES2/gl2.h>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 typedef struct {
     float xb1, xb2;
     float xt1, xt2;
@@ -36,6 +37,14 @@ void abodBuildHistogram(int w, int h);
 
 void abodMatchHistogramCPU(const RASPITEX_STATE *state);
 
+void abodFillMask(int32_t i, int32_t i1);
+
+int isInsideTrap(int row, int col, int32_t i, int32_t i1);
+
+int isAtLeft(int x4, int y4, int x1, int y1, int x, int y);
+
+int isAtRight(int x3, int y3, int x2, int y2, int x, int y);
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 RaspisilvioShaderProgram lines_shader = {
         .vs_file = "gl_scenes/linesVS.glsl",
@@ -51,6 +60,28 @@ RaspisilvioShaderProgram lines_shader = {
 RaspisilvioShaderProgram gauss_hsi_shader = {
         .vs_file = "gl_scenes/simpleVS.glsl",
         .fs_file = "gl_scenes/gaussian5hsiFS.glsl",
+        .vertex_source = "",
+        .fragment_source = "",
+        .uniform_names =
+                {"tex", "tex_unit"},
+        .attribute_names =
+                {"vertex"},
+};
+///////////////////////////////////////////////////////////////////////////////////////////////////
+RaspisilvioShaderProgram gauss_shader = {
+        .vs_file = "gl_scenes/simpleVS.glsl",
+        .fs_file = "gl_scenes/gaussian5FS.glsl",
+        .vertex_source = "",
+        .fragment_source = "",
+        .uniform_names =
+                {"tex", "tex_unit"},
+        .attribute_names =
+                {"vertex"},
+};
+///////////////////////////////////////////////////////////////////////////////////////////////////
+RaspisilvioShaderProgram hsi_shader = {
+        .vs_file = "gl_scenes/simpleVS.glsl",
+        .fs_file = "gl_scenes/hsiFS.glsl",
         .vertex_source = "",
         .fragment_source = "",
         .uniform_names =
@@ -107,14 +138,19 @@ int intensity_bin = 10;
 int hue_threshold = 100;
 int intensity_threshold = 100;
 
+uint8_t *pixels_from_mask;
+
+GLuint mask_tex_id;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 int main() {
     int exit_code;
 
     RaspisilvioApplication abod;
     raspisilvioGetDefault(&abod);
     abod.init = abodInit;
-//    abod.draw = abodDraw;
+    abod.draw = abodDraw;
 
     exit_code = raspisilvioInitApp(&abod);
     if (exit_code != EX_OK) {
@@ -128,16 +164,21 @@ int main() {
 
     int ch;
 
+    printf("Render id = %d\n", render_id);
+
     while (1) {
         vcos_sleep(1000);
 
         fflush(stdin);
         ch = getchar();
 
-        render_id++;
-        if (render_id >= 7) {
+        if (render_id < 13) {
+            render_id++;
+        }
+        else {
             render_id = 0;
         }
+        printf("Render id = %d\n", render_id);
     }
 
     raspisilvioStop(&abod);
@@ -159,11 +200,22 @@ int abodInit(RASPITEX_STATE *raspitex_state) {
     raspisilvioLoadShader(&mask_shader);
     raspisilvioLoadShader(&hist_shader);
 
+    raspisilvioLoadShader(&gauss_shader);
+    raspisilvioLoadShader(&hsi_shader);
+
     raspisilvioCreateTextureData(pixels_from_fb, raspitex_state->width, raspitex_state->height, GL_RGBA);
     raspisilvioCreateTextureData(pixels_from_fb_full, raspitex_state->width, raspitex_state->height, GL_RGBA);
 
     raspisilvioCreateTextureData(pixels_hist_h, HISTOGRAM_WIDTH, HISTOGRAM_HEIGHT, GL_RGBA);
     raspisilvioCreateTextureData(pixels_hist_i, HISTOGRAM_WIDTH, HISTOGRAM_HEIGHT, GL_RGBA);
+
+//    raspisilvioCreateTextureData(pixels_from_mask, raspitex_state->width, raspitex_state->height, GL_RGBA);
+    pixels_from_mask = malloc(4 * 640 * 480);//TODO: CHECK HOW TO DO ALLOCATION IN API
+
+    abodFillMask(raspitex_state->width, raspitex_state->height);
+
+    raspisilvioCreateTexture(&mask_tex_id, GL_FALSE, raspitex_state->width, raspitex_state->height, pixels_from_mask,
+                             GL_RGBA);
 
     raspisilvioCreateTexture(&trap_tex_id, GL_TRUE, 0, 0, NULL, GL_RGBA);
 
@@ -173,6 +225,80 @@ int abodInit(RASPITEX_STATE *raspitex_state) {
     raspisilvioCreateTextureFB(&hsi_tex_id, raspitex_state->width, raspitex_state->height, NULL, GL_RGBA, &hsi_fbo_id);
 
     return rc;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+void abodFillMask(int32_t width, int32_t height) {
+    int i, j;
+    for (i = 0; i < height; i++) {
+        for (j = 0; j < width; j++) {
+            if (isInsideTrap(i, j, width, height)) {
+                pixels_from_mask[4 * (i * width + j) + 0] = 255;
+                pixels_from_mask[4 * (i * width + j) + 1] = 255;
+                pixels_from_mask[4 * (i * width + j) + 2] = 255;
+                pixels_from_mask[4 * (i * width + j) + 3] = 255;
+            } else {
+                pixels_from_mask[4 * (i * width + j) + 0] = 0;
+                pixels_from_mask[4 * (i * width + j) + 1] = 0;
+                pixels_from_mask[4 * (i * width + j) + 2] = 0;
+                pixels_from_mask[4 * (i * width + j) + 3] = 255;
+            }
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+int isInsideTrap(int row, int col, int32_t width, int32_t height) {
+    int y1 = 0, y2 = 0, y3 = height, y4 = height;
+    int yRef = 0.5f * height * (heads.y1 + 1.0f);
+
+    int x1 = width * 0.5f * (heads.xb1 + 1.0f);
+    int x2 = width * 0.5f * (heads.xb2 + 1.0f);
+    int x3 = width * 0.5f * (heads.xt2 + 1.0f);
+    int x4 = width * 0.5f * (heads.xt1 + 1.0f);
+
+    int x = col;
+    int y = row;
+
+    if (y > yRef) {
+        return 0;
+    }
+
+    if (isAtLeft(x4, y4, x1, y1, x, y)) {
+        return 0;
+    }
+
+    if (isAtRight(x3, y3, x2, y2, x, y)) {
+        return 0;
+    }
+
+    return 1;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+int isAtRight(int x3, int y3, int x2, int y2, int x, int y) {
+    float m = ((float) y3 - y2) / ((float) x2 - x3);
+    float ytemp = m * (x2 - x);
+
+    if (ytemp > y) {
+        return 0;
+    }
+    return 1;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+int isAtLeft(int x4, int y4, int x1, int y1, int x, int y) {
+    float m = ((float) y4 - y1) / ((float) x4 - x1);
+    float ytemp = m * (x - x1);
+
+    if (ytemp > y) {
+        return 0;
+    }
+    return 1;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -196,28 +322,32 @@ int abodDraw(RASPITEX_STATE *state) {
 
             break;
         case 2:
-            raspisilvioCameraMask(state, mask_tex_id, FRAMBE_BUFFER_PREVIEW);
+            raspisilvioDrawTexture(state, mask_tex_id);
 
             break;
         case 3:
+            raspisilvioCameraMask(state, mask_tex_id, FRAMBE_BUFFER_PREVIEW);
+
+            break;
+        case 4:
 
             raspisilvioProcessingCamera(&gauss_hsi_shader, state, FRAMBE_BUFFER_PREVIEW);
 
             break;
-        case 4:
+        case 5:
             raspisilvioProcessingCamera(&gauss_shader, state, hsi_fbo_id);
 
             raspisilvioProcessingTexture(&hsi_shader, state, FRAMBE_BUFFER_PREVIEW, hsi_tex_id);
 
             break;
-        case 5:
+        case 6:
 
             raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
 
             abodDrawMaskX();
 
             break;
-        case 6:
+        case 7:
             raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
 
             abodDrawMaskX();
@@ -230,19 +360,19 @@ int abodDraw(RASPITEX_STATE *state) {
 
             raspisilvioDrawTexture(state, trap_tex_id);
             break;
-        case 7:
+        case 8:
             raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
 
-            raspisilvioTextureMask(state, mask_tex_id, FRAMBE_BUFFER_PREVIEW);
+            raspisilvioTextureMask(state, mask_tex_id, FRAMBE_BUFFER_PREVIEW, hsi_tex_id);
             break;
 
-        case 8:
+        case 9:
 
             raspisilvioProcessingCameraMask(&gauss_hsi_shader, state, mask_tex_id, FRAMBE_BUFFER_PREVIEW);
 
             break;
 
-        case 9:
+        case 10:
 
             raspisilvioProcessingCameraMask(&gauss_hsi_shader, state, mask_tex_id, hsi_fbo_id);
 
@@ -254,7 +384,7 @@ int abodDraw(RASPITEX_STATE *state) {
 
             break;
 
-        case 10:
+        case 11:
 
             raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
 
@@ -269,7 +399,7 @@ int abodDraw(RASPITEX_STATE *state) {
             raspisilvioDrawTexture(state, trap_tex_id);
 
             break;
-        case 11:
+        case 12:
             raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
 
             abodDrawMaskX();
@@ -288,7 +418,7 @@ int abodDraw(RASPITEX_STATE *state) {
             abodMatchHistogram();
 
             break;
-        case 12:
+        case 13:
             raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
 
             glReadPixels(0, 0, state->width, state->height, GL_RGBA, GL_UNSIGNED_BYTE, pixels_from_fb_full);
@@ -309,6 +439,7 @@ int abodDraw(RASPITEX_STATE *state) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 void abodMatchHistogramCPU(const RASPITEX_STATE *state) {
     uint8_t *out = pixels_from_fb_full;
     uint8_t *end = out + 4 * state->width * state->height;
@@ -324,15 +455,12 @@ void abodMatchHistogramCPU(const RASPITEX_STATE *state) {
         if (intensity < intensity_hist.bin_width) {
             if (intensity_value < intensity_threshold) {
                 out[0] = out[1] = out[2] = 255;
-            }
-            else {
+            } else {
                 out[0] = out[1] = out[2] = 0;
             }
-        }
-        else if (hue_value < hue_threshold || intensity_value < intensity_threshold) {
+        } else if (hue_value < hue_threshold || intensity_value < intensity_threshold) {
             out[0] = out[1] = out[2] = 255;
-        }
-        else {
+        } else {
             out[0] = out[1] = out[2] = 0;
         }
         out += 4;
@@ -340,6 +468,7 @@ void abodMatchHistogramCPU(const RASPITEX_STATE *state) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 void abodBuildHistogram(int w, int h) {
     raspisilvioInitHist(&intensity_hist, intensity_bin);
     raspisilvioInitHist(&hue_hist, hue_bin);
@@ -370,6 +499,7 @@ void abodBuildHistogram(int w, int h) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 void abodExtractReference(const RASPITEX_STATE *state, int *width, int *height) {
     int x, y;
 
@@ -383,6 +513,7 @@ void abodExtractReference(const RASPITEX_STATE *state, int *width, int *height) 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 void abodDrawHeads() {
     GLCHK(glUseProgram(lines_shader.program));
     GLCHK(glUniform3f(lines_shader.uniform_locations[0], 0.0f, 1.0f, 0.0f));
@@ -402,9 +533,12 @@ void abodDrawHeads() {
     GLCHK(glEnableVertexAttribArray(lines_shader.attribute_locations[0]));
     GLCHK(glVertexAttribPointer(lines_shader.attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, points));
     GLCHK(glDrawArrays(GL_LINES, 0, 8));
+    glFlush();
+    glFinish();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 void abodDrawMaskX() {
     GLCHK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -419,9 +553,12 @@ void abodDrawMaskX() {
     GLCHK(glEnableVertexAttribArray(mask_shader.attribute_locations[0]));
     GLCHK(glVertexAttribPointer(mask_shader.attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0));
     GLCHK(glDrawArrays(GL_TRIANGLES, 0, 6));
+    glFlush();
+    glFinish();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 void abodMatchHistogram() {
     GLCHK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -443,5 +580,7 @@ void abodMatchHistogram() {
     GLCHK(glEnableVertexAttribArray(hist_shader.attribute_locations[0]));
     GLCHK(glVertexAttribPointer(hist_shader.attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0));
     GLCHK(glDrawArrays(GL_TRIANGLES, 0, 6));
+    glFlush();
+    glFinish();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
