@@ -22,6 +22,8 @@ static const int HISTOGRAM_HEIGHT = 3;
 
 static const int FRAMBE_BUFFER_PREVIEW = 0;
 
+static const int RENDER_STEPS = 16;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int abodInit(RASPITEX_STATE *raspitex_state);
 
@@ -44,6 +46,8 @@ int isInsideTrap(int row, int col, int32_t i, int32_t i1);
 int isAtLeft(int x4, int y4, int x1, int y1, int x, int y);
 
 int isAtRight(int x3, int y3, int x2, int y2, int x, int y);
+
+void abodPrintStep();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 RaspisilvioShaderProgram lines_shader = {
@@ -79,9 +83,31 @@ RaspisilvioShaderProgram gauss_shader = {
                 {"vertex"},
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+RaspisilvioShaderProgram gauss_shader_es = {
+        .vs_file = "gl_scenes/simpleVS.glsl",
+        .fs_file = "gl_scenes/gaussian5EFS.glsl",
+        .vertex_source = "",
+        .fragment_source = "",
+        .uniform_names =
+                {"tex", "tex_unit"},
+        .attribute_names =
+                {"vertex"},
+};
+///////////////////////////////////////////////////////////////////////////////////////////////////
 RaspisilvioShaderProgram hsi_shader = {
         .vs_file = "gl_scenes/simpleVS.glsl",
         .fs_file = "gl_scenes/hsiFS.glsl",
+        .vertex_source = "",
+        .fragment_source = "",
+        .uniform_names =
+                {"tex", "tex_unit"},
+        .attribute_names =
+                {"vertex"},
+};
+///////////////////////////////////////////////////////////////////////////////////////////////////
+RaspisilvioShaderProgram hsi_shader_es = {
+        .vs_file = "gl_scenes/simpleVS.glsl",
+        .fs_file = "gl_scenes/hsiEFS.glsl",
         .vertex_source = "",
         .fragment_source = "",
         .uniform_names =
@@ -164,7 +190,7 @@ int main() {
 
     int ch;
 
-    printf("Render id = %d\n", render_id);
+    abodPrintStep();
 
     while (1) {
         vcos_sleep(1000);
@@ -172,17 +198,38 @@ int main() {
         fflush(stdin);
         ch = getchar();
 
-        if (render_id < 13) {
+        if (render_id < RENDER_STEPS) {
             render_id++;
         }
         else {
             render_id = 0;
         }
-        printf("Render id = %d\n", render_id);
+        abodPrintStep();
     }
 
     raspisilvioStop(&abod);
     return exit_code;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void abodPrintStep() {
+    static char *render_steps[] = {
+            "Camera feed",
+            "Camera feed & Gauss",
+            "Camera feed & HSI",
+            "Camera feed & Gauss->HSI",
+            "Camera feed & Gauss->HSI 2 Steps",
+            "Camera feed & HSI->Gauss 2 Steps",
+            "Camera feed & Head",
+            "Mask",
+            "Camera feed & Mask",
+            "Camera feed & Mask - 2 Steps",
+            "Camera feed & Gauss->HSI & Mask->Shader",
+            "Camera feed & Reference Big & Mask->Shader",
+            "Camera feed & Reference & Mask->Texture",
+            "Camera feed & Gauss->HSI & Mask->Shader"
+    };
+    printf("Render id = %d\n%s\n", render_id, render_steps[render_id]);
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -194,7 +241,7 @@ int main() {
 int abodInit(RASPITEX_STATE *raspitex_state) {
     int rc = 0;
 
-    rc = raspisilvioInitHelp(raspitex_state);
+    rc = raspisilvioHelpInit(raspitex_state);
     raspisilvioLoadShader(&lines_shader);
     raspisilvioLoadShader(&gauss_hsi_shader);
     raspisilvioLoadShader(&mask_shader);
@@ -202,6 +249,9 @@ int abodInit(RASPITEX_STATE *raspitex_state) {
 
     raspisilvioLoadShader(&gauss_shader);
     raspisilvioLoadShader(&hsi_shader);
+
+    raspisilvioLoadShader(&gauss_shader_es);
+    raspisilvioLoadShader(&hsi_shader_es);
 
     raspisilvioCreateTextureData(pixels_from_fb, raspitex_state->width, raspitex_state->height, GL_RGBA);
     raspisilvioCreateTextureData(pixels_from_fb_full, raspitex_state->width, raspitex_state->height, GL_RGBA);
@@ -309,70 +359,69 @@ int isAtLeft(int x4, int y4, int x1, int y1, int x, int y) {
  */
 int abodDraw(RASPITEX_STATE *state) {
 
-    int i, j;
-
     switch (render_id) {
         case 0:
             raspisilvioDrawCamera(state);
             break;
         case 1:
-            raspisilvioHelpDraw(state);
-
-            abodDrawHeads();
-
+            raspisilvioProcessingCamera(&gauss_shader_es, state, FRAMBE_BUFFER_PREVIEW);
             break;
         case 2:
-            raspisilvioDrawTexture(state, mask_tex_id);
-
+            raspisilvioProcessingCamera(&hsi_shader_es, state, FRAMBE_BUFFER_PREVIEW);
             break;
         case 3:
-            raspisilvioCameraMask(state, mask_tex_id, FRAMBE_BUFFER_PREVIEW);
-
+            raspisilvioProcessingCamera(&gauss_hsi_shader, state, FRAMBE_BUFFER_PREVIEW);
             break;
         case 4:
-
-            raspisilvioProcessingCamera(&gauss_hsi_shader, state, FRAMBE_BUFFER_PREVIEW);
-
+            raspisilvioProcessingCamera(&gauss_shader_es, state, hsi_fbo_id);
+            raspisilvioProcessingTexture(&hsi_shader, state, FRAMBE_BUFFER_PREVIEW, hsi_tex_id);
             break;
         case 5:
-            raspisilvioProcessingCamera(&gauss_shader, state, hsi_fbo_id);
-
-            raspisilvioProcessingTexture(&hsi_shader, state, FRAMBE_BUFFER_PREVIEW, hsi_tex_id);
-
+            raspisilvioProcessingCamera(&hsi_shader_es, state, hsi_fbo_id);
+            raspisilvioProcessingTexture(&gauss_shader, state, FRAMBE_BUFFER_PREVIEW, hsi_tex_id);
             break;
         case 6:
-
-            raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
-
-            abodDrawMaskX();
-
+            raspisilvioHelpDraw(state);
+            abodDrawHeads();
             break;
         case 7:
+            raspisilvioDrawTexture(state, mask_tex_id);
+            break;
+        case 8:
+            raspisilvioCameraMask(state, mask_tex_id, FRAMBE_BUFFER_PREVIEW);
+            break;
+        case 9:
+            raspisilvioProcessingCamera(raspisilvioGetPreviewShader(), state, hsi_fbo_id);
+            raspisilvioTextureMask(state, mask_tex_id, FRAMBE_BUFFER_PREVIEW, hsi_tex_id);
+            break;
+        case 10:
             raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
-
+            abodDrawMaskX();
+            break;
+        case 11:
+            raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
             abodDrawMaskX();
 
             int w, h;
-
             abodExtractReference(state, &w, &h);
-
-            raspisilvioSetTextureData(trap_tex_id, w, h, pixels_from_fb, GL_RGBA);
-
-            raspisilvioDrawTexture(state, trap_tex_id);
+//
+//            raspisilvioSetTextureData(trap_tex_id, w, h, pixels_from_fb, GL_RGBA);
+//
+//            raspisilvioDrawTexture(state, trap_tex_id);
             break;
-        case 8:
+        case 12:
             raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
 
             raspisilvioTextureMask(state, mask_tex_id, FRAMBE_BUFFER_PREVIEW, hsi_tex_id);
             break;
 
-        case 9:
+        case 13:
 
             raspisilvioProcessingCameraMask(&gauss_hsi_shader, state, mask_tex_id, FRAMBE_BUFFER_PREVIEW);
 
             break;
 
-        case 10:
+        case 14:
 
             raspisilvioProcessingCameraMask(&gauss_hsi_shader, state, mask_tex_id, hsi_fbo_id);
 
@@ -384,7 +433,7 @@ int abodDraw(RASPITEX_STATE *state) {
 
             break;
 
-        case 11:
+        case 15:
 
             raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
 
@@ -399,7 +448,7 @@ int abodDraw(RASPITEX_STATE *state) {
             raspisilvioDrawTexture(state, trap_tex_id);
 
             break;
-        case 12:
+        case 16:
             raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
 
             abodDrawMaskX();
@@ -418,7 +467,7 @@ int abodDraw(RASPITEX_STATE *state) {
             abodMatchHistogram();
 
             break;
-        case 13:
+        case 17:
             raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
 
             glReadPixels(0, 0, state->width, state->height, GL_RGBA, GL_UNSIGNED_BYTE, pixels_from_fb_full);

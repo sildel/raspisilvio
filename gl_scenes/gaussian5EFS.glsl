@@ -1,4 +1,6 @@
-uniform sampler2D tex;
+#extension GL_OES_EGL_image_external : require
+
+uniform samplerExternalOES tex;
 varying vec2 texcoord;
 uniform vec2 tex_unit;
 

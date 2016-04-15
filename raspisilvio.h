@@ -123,7 +123,7 @@ int raspisilvioStop(RaspisilvioApplication *app);
 
 void raspisilvioLoadShader(RaspisilvioShaderProgram *shader);
 
-int raspisilvioInitHelp(RASPITEX_STATE *state);
+int raspisilvioHelpInit(RASPITEX_STATE *state);
 
 int raspisilvioHelpDraw(RASPITEX_STATE *state);
 

@@ -40,6 +40,28 @@ RaspisilvioShaderProgram result_shader = {
                 {"vertex"},
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+RaspisilvioShaderProgram mask_camera_shader = {
+        .vs_file = "gl_scenes/simpleVS.glsl",
+        .fs_file = "gl_scenes/mask_operationEFS.glsl",
+        .vertex_source = "",
+        .fragment_source = "",
+        .uniform_names =
+                {"tex", "mask"},
+        .attribute_names =
+                {"vertex"},
+};
+///////////////////////////////////////////////////////////////////////////////////////////////////
+RaspisilvioShaderProgram mask_tex_shader = {
+        .vs_file = "gl_scenes/simpleVS.glsl",
+        .fs_file = "gl_scenes/mask_operationFS.glsl",
+        .vertex_source = "",
+        .fragment_source = "",
+        .uniform_names =
+                {"tex", "mask"},
+        .attribute_names =
+                {"vertex"},
+};
+///////////////////////////////////////////////////////////////////////////////////////////////////
 static GLuint quad_vbo;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static GLfloat quad_varray[] = {
@@ -554,7 +576,7 @@ int raspisilvioStop(RaspisilvioApplication *app) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-int raspisilvioInitHelp(RASPITEX_STATE *state) {
+int raspisilvioHelpInit(RASPITEX_STATE *state) {
     int rc = 0;
 
     vcos_log_trace("%s", VCOS_FUNCTION);
@@ -563,6 +585,8 @@ int raspisilvioInitHelp(RASPITEX_STATE *state) {
 
     raspisilvioLoadShader(&preview_shader);
     raspisilvioLoadShader(&result_shader);
+    raspisilvioLoadShader(&mask_camera_shader);
+    raspisilvioLoadShader(&mask_tex_shader);
 
     glGenBuffers(1, &quad_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, quad_vbo);
@@ -820,8 +844,24 @@ void raspisilvioDrawCamera(RASPITEX_STATE *state) {
  * @return void.
  */
 void raspisilvioCameraMask(RASPITEX_STATE *state, GLuint maskName, GLuint frameBuffer) {
-    // TODO : implement
-    raspisilvioDrawCamera(state);
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+    glViewport(0, 0, state->width, state->height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glUseProgram(mask_camera_shader.program);
+    glUniform1i(mask_camera_shader.uniform_locations[0], 0);
+    glUniform1i(mask_camera_shader.uniform_locations[1], 1);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, state->texture);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, maskName);
+    glBindBuffer(GL_ARRAY_BUFFER, raspisilvioGetQuad());
+    glEnableVertexAttribArray(mask_camera_shader.attribute_locations[0]);
+    glVertexAttribPointer(mask_camera_shader.attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glFlush();
+    glFinish();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -928,7 +968,23 @@ void raspisilvioDrawTexture(RASPITEX_STATE *state, GLuint textureName) {
  * @return void.
  */
 void raspisilvioTextureMask(RASPITEX_STATE *state, GLuint maskName, GLuint frameBuffer, GLuint textureName) {
-    // TODO : implement
+    GLCHK(glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer));
+    glViewport(0, 0, state->width, state->height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    GLCHK(glUseProgram(mask_tex_shader.program));
+    GLCHK(glUniform1i(mask_tex_shader.uniform_locations[0], 0)); // Texture unit
+    GLCHK(glUniform1i(mask_tex_shader.uniform_locations[1], 1)); // Texture unit
+    GLCHK(glActiveTexture(GL_TEXTURE0));
+    GLCHK(glBindTexture(GL_TEXTURE_2D, textureName));
+    GLCHK(glActiveTexture(GL_TEXTURE1));
+    GLCHK(glBindTexture(GL_TEXTURE_2D, maskName));
+    GLCHK(glBindBuffer(GL_ARRAY_BUFFER, raspisilvioGetQuad()));
+    GLCHK(glEnableVertexAttribArray(mask_tex_shader.attribute_locations[0]));
+    GLCHK(glVertexAttribPointer(mask_tex_shader.attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0));
+    GLCHK(glDrawArrays(GL_TRIANGLES, 0, 6));
+    glFlush();
+    glFinish();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
