@@ -144,7 +144,7 @@ void raspisilvioCreateTexture(GLuint *name, int onlyName, int width, int height,
 void raspisilvioCreateTextureFB(GLuint *nameTexture, int width, int height, uint8_t *data, int format,
                                 GLuint *nameFB);
 
-void raspisilvioCreateTextureData(uint8_t *fb, int32_t width, int32_t height, int format);
+void raspisilvioCreateTextureData(uint8_t **fb, int32_t width, int32_t height, int format);
 
 void raspisilvioSetTextureData(GLuint name, int width, int height, uint8_t *data, int format);
 
