@@ -7,6 +7,14 @@ uniform sampler2D mask;
 
 void main(void)
 {
+    vec4 mask_col = texture2D(mask, texcoord);
+
+    if (mask_col.g == 0.0)
+    {
+        gl_FragColor = vec4(0);
+        return;
+    }
+
     vec4 col = vec4(0);
 
     float x = texcoord.x;
@@ -83,11 +91,4 @@ void main(void)
     }
 
     gl_FragColor = vec4(h,s,i,1.0);
-
-    vec4 mask_col = texture2D(mask, texcoord);
-
-    if (mask_col.g == 0.0)
-    {
-        gl_FragColor = vec4(0);
-    }
 }
