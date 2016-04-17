@@ -22,7 +22,7 @@ static const int HISTOGRAM_HEIGHT = 3;
 
 static const int FRAMBE_BUFFER_PREVIEW = 0;
 
-static const int RENDER_STEPS = 16;
+static const int RENDER_STEPS = 17;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int abodInit(RASPITEX_STATE *raspitex_state);
@@ -152,7 +152,7 @@ RaspisilvioShaderProgram hist_shader = {
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-int render_id = 13;
+int render_id = 15;
 GLuint h_hist_tex_id;
 GLuint i_hist_tex_id;
 GLuint trap_tex_id;
@@ -241,7 +241,11 @@ void abodPrintStep() {
             "11- > Camera feed & Reference Big & Mask->Shader",
             "12- > Camera feed & Reference & Mask->Texture - 2 Steps",
             "13- > Camera feed & Reference & Mask->Texture",
-            "14- > Camera feed & Reference & Mask->Texture"
+            "14- > Camera feed & Reference Big & Mask->Texture",
+            "15- > Camera feed & Reference Big & Mask->Shader & Hist",
+            "16- > Camera feed & Reference Big & Mask->Shader & Hist & Matching",
+            "17- > Camera feed & Reference Big & Mask->Shader & Hist & Matching CPU",
+            "18- > Test"
     };
     printf("Render id = %d\n%s\n", render_id, render_steps[render_id]);
 }
@@ -427,18 +431,24 @@ int abodDraw(RASPITEX_STATE *state) {
             break;
 
         case 13:
-//            raspisilvioDrawTexture(state, mask_tex_id);
             raspisilvioProcessingCameraMask(&gauss_hsi_shader_mask, state, mask_tex_id, FRAMBE_BUFFER_PREVIEW);
             break;
 
         case 14:
-            raspisilvioProcessingCameraMask(&gauss_hsi_shader, state, mask_tex_id, hsi_fbo_id);
+            raspisilvioProcessingCameraMask(&gauss_hsi_shader_mask, state, mask_tex_id, hsi_fbo_id);
             abodExtractReference(state, &w, &h);
             raspisilvioSetTextureData(trap_tex_id, w, h, pixels_from_fb, GL_RGBA);
             raspisilvioDrawTexture(state, trap_tex_id);
             break;
 
         case 15:
+//            raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
+//            abodDrawMaskX();
+//            abodExtractReference(state, &w, &h);
+//            abodBuildHistogram(w, h);
+//            raspisilvioSetTextureData(trap_tex_id, w, h, pixels_from_fb, GL_RGBA);
+//            raspisilvioDrawTexture(state, trap_tex_id);
+
             raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
             abodDrawMaskX();
             abodExtractReference(state, &w, &h);
@@ -523,6 +533,13 @@ void abodBuildHistogram(int w, int h) {
             out[0] = 255;
             out[1] = 255;
             out[2] = 255;
+            out[3] = 255;
+        }
+        else
+        {
+            out[0] = 255;
+            out[1] = 0;
+            out[2] = 0;
             out[3] = 255;
         }
 
