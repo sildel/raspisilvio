@@ -22,7 +22,11 @@ static const int HISTOGRAM_HEIGHT = 3;
 
 static const int FRAMBE_BUFFER_PREVIEW = 0;
 
-static const int RENDER_STEPS = 17;
+static const int RENDER_STEPS = 18;
+
+static const int TEST_WIDTH = 4;
+
+static const int TEST_HEIGHT = 4;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int abodInit(RASPITEX_STATE *raspitex_state);
@@ -51,6 +55,19 @@ int isAtRight(int x3, int y3, int x2, int y2, int x, int y);
 
 void abodPrintStep();
 
+void abodFillTest(int32_t width, int32_t height);
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+RaspisilvioShaderProgram test_shader = {
+        .vs_file = "gl_scenes/testVS.glsl",
+        .fs_file = "gl_scenes/testFS.glsl",
+        .vertex_source = "",
+        .fragment_source = "",
+        .uniform_names =
+                {"tex"},
+        .attribute_names =
+                {"vertex"},
+};
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 RaspisilvioShaderProgram lines_shader = {
         .vs_file = "gl_scenes/linesVS.glsl",
@@ -152,7 +169,7 @@ RaspisilvioShaderProgram hist_shader = {
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-int render_id = 15;
+int render_id = 18;
 GLuint h_hist_tex_id;
 GLuint i_hist_tex_id;
 GLuint trap_tex_id;
@@ -178,8 +195,12 @@ int hue_threshold = 100;
 int intensity_threshold = 100;
 
 uint8_t *pixels_from_mask;
+uint8_t *pixels_to_test;
 
 GLuint mask_tex_id;
+GLuint test_tex_id;
+
+GLuint test_vbo;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -293,7 +314,41 @@ int abodInit(RASPITEX_STATE *raspitex_state) {
 
     raspisilvioCreateTextureFB(&hsi_tex_id, raspitex_state->width, raspitex_state->height, NULL, GL_RGBA, &hsi_fbo_id);
 
+    raspisilvioCreateTextureData(&pixels_to_test, TEST_WIDTH, TEST_HEIGHT, GL_RGBA);
+    abodFillTest(TEST_WIDTH, TEST_HEIGHT);
+    raspisilvioCreateTexture(&test_tex_id, GL_FALSE, TEST_WIDTH, TEST_HEIGHT, pixels_to_test, GL_RGBA);
+
+    glGenBuffers(1, &test_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, test_vbo);
+    GLfloat point_varray[] = {0.0f, 0.9f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                              0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+    glBufferData(GL_ARRAY_BUFFER, sizeof(point_varray), point_varray, GL_STATIC_DRAW);
+    raspisilvioLoadShader(&test_shader);
+
     return rc;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void abodFillTest(int32_t width, int32_t height) {
+    int i, j, counter = 0;
+    for (i = 0; i < height; i++) {
+        for (j = 0; j < width; j++, counter++) {
+            if(counter<height*width/2)
+            {
+                pixels_to_test[4 * (i * width + j) + 0] = 255;
+                pixels_to_test[4 * (i * width + j) + 1] = 255;
+                pixels_to_test[4 * (i * width + j) + 2] = 255;
+                pixels_to_test[4 * (i * width + j) + 3] = 255;
+            }
+            else
+            {
+                pixels_to_test[4 * (i * width + j) + 0] = 0;
+                pixels_to_test[4 * (i * width + j) + 1] = 0;
+                pixels_to_test[4 * (i * width + j) + 2] = 0;
+                pixels_to_test[4 * (i * width + j) + 3] = 0;
+            }
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -377,6 +432,7 @@ int isAtLeft(int x4, int y4, int x1, int y1, int x, int y) {
  * @return Zero if successful.
  */
 int abodDraw(RASPITEX_STATE *state) {
+    static int a = 0;
 
     switch (render_id) {
         case 0:
@@ -442,13 +498,6 @@ int abodDraw(RASPITEX_STATE *state) {
             break;
 
         case 15:
-//            raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
-//            abodDrawMaskX();
-//            abodExtractReference(state, &w, &h);
-//            abodBuildHistogram(w, h);
-//            raspisilvioSetTextureData(trap_tex_id, w, h, pixels_from_fb, GL_RGBA);
-//            raspisilvioDrawTexture(state, trap_tex_id);
-
             raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
             abodDrawMaskX();
             abodExtractReference(state, &w, &h);
@@ -476,6 +525,46 @@ int abodDraw(RASPITEX_STATE *state) {
             abodMatchHistogramCPU(state);
             raspisilvioSetTextureData(trap_tex_id, state->width, state->height, pixels_from_fb_full, GL_RGBA);
             raspisilvioDrawTexture(state, trap_tex_id);
+            break;
+        case 18:
+            glBlendFunc(GL_ONE, GL_ONE);
+            glEnable(GL_BLEND);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glViewport(0, 0, 640, 480);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glPointSize(2.0f);
+
+            glUseProgram(test_shader.program);
+            glUniform1i(test_shader.uniform_locations[0], 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, test_tex_id);
+            glBindBuffer(GL_ARRAY_BUFFER, test_vbo);
+            glEnableVertexAttribArray(test_shader.attribute_locations[0]);
+            glVertexAttribPointer(test_shader.attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0);
+            glDrawArrays(GL_POINTS, 0, 8);
+            glFlush();
+            glFinish();
+
+            GLCHK(glReadPixels(0, 0, 4, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels_from_fb));
+
+            uint8_t *out = pixels_from_fb;
+            uint8_t *end = out + 4 * 4 * 1;
+
+            if(a==0)
+            {
+                printf("*********\n");
+                while (out < end) {
+                    printf("%d,", out[0]);
+                    printf("%d,", out[1]);
+                    printf("%d,", out[2]);
+                    printf("%d,", out[3]);
+                    out += 4;
+                }
+                printf("\n*********\n");
+                a = 1;
+            }
+
+            return 0;
             break;
     }
 }
@@ -535,8 +624,7 @@ void abodBuildHistogram(int w, int h) {
             out[2] = 255;
             out[3] = 255;
         }
-        else
-        {
+        else {
             out[0] = 255;
             out[1] = 0;
             out[2] = 0;

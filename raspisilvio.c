@@ -793,7 +793,7 @@ void raspisilvioProcessingCamera(RaspisilvioShaderProgram *shader, RASPITEX_STAT
  * 1 - First attribute is the vertex and should contains only x and y coordinates
  * 2 - First uniform is the texture unit and the type should be samplerExternalOES
  * 3 - Second uniform is the dimension of the pixel in texture coordinates
- * 4 - Third uniform is the texture unit
+ * 4 - Third uniform is the texture unit for the mask
  *
  * @param shader The shader to be used.
  * @param state The state of the application.
@@ -903,11 +903,12 @@ void raspisilvioProcessingTexture(RaspisilvioShaderProgram *shader, RASPITEX_STA
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /* Do processing to a texture using the specified shader program and put it on the specified frame buffer.
- * At the same time it applies a mask (i.e.  Don't process the pixel indicated in the mask).
+ * It uses a second texture that can act as a mask (The shader should implement this).
  * The shader is expected to have these parameters:
  * 1 - First attribute is the vertex and should contains only x and y coordinates
  * 2 - First uniform is the texture unit and the type should be sampler2D
  * 3 - Second uniform is the dimension of the pixel in texture coordinates
+ * 4 - Third uniform is the texture unit for the mask
  *
  * @param shader The shader to be used.
  * @param state The state of the application.
@@ -918,7 +919,6 @@ void raspisilvioProcessingTexture(RaspisilvioShaderProgram *shader, RASPITEX_STA
  */
 void raspisilvioProcessingTextureMask(RaspisilvioShaderProgram *shader, RASPITEX_STATE *state, GLuint maskName,
                                       GLuint frameBuffer, GLuint textureName) {
-    // TODO: implement
     GLCHK(glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer));
     glViewport(0, 0, state->width, state->height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -928,8 +928,11 @@ void raspisilvioProcessingTextureMask(RaspisilvioShaderProgram *shader, RASPITEX
     /* Dimensions of a single pixel in texture co-ordinates */
     GLCHK(glUniform2f(shader->uniform_locations[1], 1.0 / (float) state->width,
                       1.0 / (float) state->height));
+    GLCHK(glUniform1i(shader->uniform_locations[2], 1)); // Texture unit
     GLCHK(glActiveTexture(GL_TEXTURE0));
     GLCHK(glBindTexture(GL_TEXTURE_2D, textureName));
+    GLCHK(glActiveTexture(GL_TEXTURE1));
+    GLCHK(glBindTexture(GL_TEXTURE_2D, maskName));
     GLCHK(glBindBuffer(GL_ARRAY_BUFFER, raspisilvioGetQuad()));
     GLCHK(glEnableVertexAttribArray(shader->attribute_locations[0]));
     GLCHK(glVertexAttribPointer(shader->attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0));
