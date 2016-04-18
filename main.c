@@ -320,9 +320,22 @@ int abodInit(RASPITEX_STATE *raspitex_state) {
 
     glGenBuffers(1, &test_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, test_vbo);
-    GLfloat point_varray[] = {0.0f, 0.9f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-                              0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
-    glBufferData(GL_ARRAY_BUFFER, sizeof(point_varray), point_varray, GL_STATIC_DRAW);
+    GLfloat *point_varray = malloc(sizeof(GLfloat) * 2 * TEST_WIDTH * TEST_HEIGHT);
+    float dx = 1.0f / TEST_WIDTH;
+    float dy = 1.0f / TEST_HEIGHT;
+    int i, x, y;
+    for (i = 0, x = 0, y = 0; i < TEST_WIDTH * TEST_HEIGHT; ++i, x++) {
+        if (x >= TEST_WIDTH) {
+            x = 0;
+            y++;
+        }
+        point_varray[i * 2 + 0] = dx * x;
+        point_varray[i * 2 + 1] = dy * y;
+
+//        printf("Y=%f\n", point_varray[i * 2 + 1]);
+    }
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 2 * 16, point_varray, GL_STATIC_DRAW);
     raspisilvioLoadShader(&test_shader);
 
     return rc;
@@ -333,15 +346,13 @@ void abodFillTest(int32_t width, int32_t height) {
     int i, j, counter = 0;
     for (i = 0; i < height; i++) {
         for (j = 0; j < width; j++, counter++) {
-            if(counter<height*width/2)
-            {
+            if (counter < height * width / 2 + 1) {
                 pixels_to_test[4 * (i * width + j) + 0] = 255;
                 pixels_to_test[4 * (i * width + j) + 1] = 255;
                 pixels_to_test[4 * (i * width + j) + 2] = 255;
                 pixels_to_test[4 * (i * width + j) + 3] = 255;
             }
-            else
-            {
+            else {
                 pixels_to_test[4 * (i * width + j) + 0] = 0;
                 pixels_to_test[4 * (i * width + j) + 1] = 0;
                 pixels_to_test[4 * (i * width + j) + 2] = 0;
@@ -530,9 +541,8 @@ int abodDraw(RASPITEX_STATE *state) {
             glBlendFunc(GL_ONE, GL_ONE);
             glEnable(GL_BLEND);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            glViewport(0, 0, 640, 480);
+            glViewport(0, 0, 4, 3);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            glPointSize(2.0f);
 
             glUseProgram(test_shader.program);
             glUniform1i(test_shader.uniform_locations[0], 0);
@@ -541,17 +551,16 @@ int abodDraw(RASPITEX_STATE *state) {
             glBindBuffer(GL_ARRAY_BUFFER, test_vbo);
             glEnableVertexAttribArray(test_shader.attribute_locations[0]);
             glVertexAttribPointer(test_shader.attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0);
-            glDrawArrays(GL_POINTS, 0, 8);
+            glDrawArrays(GL_POINTS, 0, TEST_HEIGHT*TEST_WIDTH);
             glFlush();
             glFinish();
 
-            GLCHK(glReadPixels(0, 0, 4, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels_from_fb));
+            GLCHK(glReadPixels(0, 1, 4, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels_from_fb));
 
             uint8_t *out = pixels_from_fb;
             uint8_t *end = out + 4 * 4 * 1;
 
-            if(a==0)
-            {
+            if (a == 0) {
                 printf("*********\n");
                 while (out < end) {
                     printf("%d,", out[0]);
