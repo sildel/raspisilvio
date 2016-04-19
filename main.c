@@ -22,11 +22,11 @@ static const int HISTOGRAM_HEIGHT = 3;
 
 static const int FRAMBE_BUFFER_PREVIEW = 0;
 
-static const int RENDER_STEPS = 18;
+static const int RENDER_STEPS = 19;
 
-static const int TEST_WIDTH = 4;
+static const int TEST_WIDTH = 32;
 
-static const int TEST_HEIGHT = 4;
+static const int TEST_HEIGHT = 32;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int abodInit(RASPITEX_STATE *raspitex_state);
@@ -169,7 +169,7 @@ RaspisilvioShaderProgram hist_shader = {
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-int render_id = 18;
+int render_id = 19;
 GLuint h_hist_tex_id;
 GLuint i_hist_tex_id;
 GLuint trap_tex_id;
@@ -196,6 +196,7 @@ int intensity_threshold = 100;
 
 uint8_t *pixels_from_mask;
 uint8_t *pixels_to_test;
+GLfloat *vertex_hist;
 
 GLuint mask_tex_id;
 GLuint test_tex_id;
@@ -224,10 +225,10 @@ int main() {
 
     int ch;
 
-    abodPrintStep();
-
     while (1) {
         vcos_sleep(1000);
+
+        abodPrintStep();
 
         fflush(stdin);
         ch = getchar();
@@ -238,7 +239,6 @@ int main() {
         else {
             render_id = 0;
         }
-        abodPrintStep();
     }
 
     raspisilvioStop(&abod);
@@ -266,7 +266,8 @@ void abodPrintStep() {
             "15- > Camera feed & Reference Big & Mask->Shader & Hist",
             "16- > Camera feed & Reference Big & Mask->Shader & Hist & Matching",
             "17- > Camera feed & Reference Big & Mask->Shader & Hist & Matching CPU",
-            "18- > Test"
+            "18- > Test",
+            "19- > Test2"
     };
     printf("Render id = %d\n%s\n", render_id, render_steps[render_id]);
 }
@@ -318,24 +319,8 @@ int abodInit(RASPITEX_STATE *raspitex_state) {
     abodFillTest(TEST_WIDTH, TEST_HEIGHT);
     raspisilvioCreateTexture(&test_tex_id, GL_FALSE, TEST_WIDTH, TEST_HEIGHT, pixels_to_test, GL_RGBA);
 
-    glGenBuffers(1, &test_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, test_vbo);
-    GLfloat *point_varray = malloc(sizeof(GLfloat) * 2 * TEST_WIDTH * TEST_HEIGHT);
-    float dx = 1.0f / TEST_WIDTH;
-    float dy = 1.0f / TEST_HEIGHT;
-    int i, x, y;
-    for (i = 0, x = 0, y = 0; i < TEST_WIDTH * TEST_HEIGHT; ++i, x++) {
-        if (x >= TEST_WIDTH) {
-            x = 0;
-            y++;
-        }
-        point_varray[i * 2 + 0] = dx * x;
-        point_varray[i * 2 + 1] = dy * y;
+    raspisilvioCreateVertexBufferHistogram(&test_vbo, TEST_WIDTH, TEST_HEIGHT, &vertex_hist);
 
-//        printf("Y=%f\n", point_varray[i * 2 + 1]);
-    }
-
-    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 2 * 16, point_varray, GL_STATIC_DRAW);
     raspisilvioLoadShader(&test_shader);
 
     return rc;
@@ -343,10 +328,11 @@ int abodInit(RASPITEX_STATE *raspitex_state) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void abodFillTest(int32_t width, int32_t height) {
+
     int i, j, counter = 0;
     for (i = 0; i < height; i++) {
         for (j = 0; j < width; j++, counter++) {
-            if (counter < height * width / 2 + 1) {
+            if (counter < 10) {
                 pixels_to_test[4 * (i * width + j) + 0] = 255;
                 pixels_to_test[4 * (i * width + j) + 1] = 255;
                 pixels_to_test[4 * (i * width + j) + 2] = 255;
@@ -355,8 +341,8 @@ void abodFillTest(int32_t width, int32_t height) {
             else {
                 pixels_to_test[4 * (i * width + j) + 0] = 0;
                 pixels_to_test[4 * (i * width + j) + 1] = 0;
-                pixels_to_test[4 * (i * width + j) + 2] = 0;
-                pixels_to_test[4 * (i * width + j) + 3] = 0;
+                pixels_to_test[4 * (i * width + j) + 2] = 255;
+                pixels_to_test[4 * (i * width + j) + 3] = 255;
             }
         }
     }
@@ -538,6 +524,9 @@ int abodDraw(RASPITEX_STATE *state) {
             raspisilvioDrawTexture(state, trap_tex_id);
             break;
         case 18:
+            raspisilvioDrawTexture(state, test_tex_id);
+            break;
+        case 19:
             glBlendFunc(GL_ONE, GL_ONE);
             glEnable(GL_BLEND);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -551,7 +540,7 @@ int abodDraw(RASPITEX_STATE *state) {
             glBindBuffer(GL_ARRAY_BUFFER, test_vbo);
             glEnableVertexAttribArray(test_shader.attribute_locations[0]);
             glVertexAttribPointer(test_shader.attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0);
-            glDrawArrays(GL_POINTS, 0, TEST_HEIGHT*TEST_WIDTH);
+            glDrawArrays(GL_POINTS, 0, TEST_WIDTH * TEST_HEIGHT);
             glFlush();
             glFinish();
 
