@@ -22,11 +22,13 @@ static const int HISTOGRAM_HEIGHT = 3;
 
 static const int FRAMBE_BUFFER_PREVIEW = 0;
 
-static const int RENDER_STEPS = 19;
+static const int RENDER_STEPS = 20;
 
 static const int TEST_WIDTH = 32;
 
 static const int TEST_HEIGHT = 32;
+
+#define TEST_POINTS 10
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int abodInit(RASPITEX_STATE *raspitex_state);
@@ -56,6 +58,12 @@ int isAtRight(int x3, int y3, int x2, int y2, int x, int y);
 void abodPrintStep();
 
 void abodFillTest(int32_t width, int32_t height);
+
+int abodRunTest();
+
+int abodRunTest2();
+
+void abodFillTest2(const int points);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 RaspisilvioShaderProgram test_shader = {
@@ -197,11 +205,13 @@ int intensity_threshold = 100;
 uint8_t *pixels_from_mask;
 uint8_t *pixels_to_test;
 GLfloat *vertex_hist;
+GLfloat vertex2_hist[TEST_POINTS * 2];
 
 GLuint mask_tex_id;
 GLuint test_tex_id;
 
 GLuint test_vbo;
+GLuint test2_vbo;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -266,8 +276,10 @@ void abodPrintStep() {
             "15- > Camera feed & Reference Big & Mask->Shader & Hist",
             "16- > Camera feed & Reference Big & Mask->Shader & Hist & Matching",
             "17- > Camera feed & Reference Big & Mask->Shader & Hist & Matching CPU",
-            "18- > Test",
-            "19- > Test2"
+            "18- > Test Texture",
+            "19- > Test Run",
+            "20- > Test2 Run",
+            "21-> Test Run"
     };
     printf("Render id = %d\n%s\n", render_id, render_steps[render_id]);
 }
@@ -321,9 +333,29 @@ int abodInit(RASPITEX_STATE *raspitex_state) {
 
     raspisilvioCreateVertexBufferHistogram(&test_vbo, TEST_WIDTH, TEST_HEIGHT, &vertex_hist);
 
+    abodFillTest2(TEST_POINTS);
+    raspisilvioCreateVertexBufferHistogramData(&test2_vbo, TEST_POINTS, vertex2_hist);
+
     raspisilvioLoadShader(&test_shader);
 
     return rc;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void abodFillTest2(const int points) {
+    int i = 0;
+
+    for (i = 0; i < points; ++i) {
+        if (i < points / 2 + 1) {
+            vertex2_hist[2 * i + 0] = 0.0f;
+            vertex2_hist[2 * i + 1] = 0.0f;
+        }
+        else {
+            vertex2_hist[2 * i + 0] = 0.9f;
+            vertex2_hist[2 * i + 1] = 0.9f;
+        }
+
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -527,46 +559,95 @@ int abodDraw(RASPITEX_STATE *state) {
             raspisilvioDrawTexture(state, test_tex_id);
             break;
         case 19:
-            glBlendFunc(GL_ONE, GL_ONE);
-            glEnable(GL_BLEND);
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            glViewport(0, 0, 4, 3);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            glUseProgram(test_shader.program);
-            glUniform1i(test_shader.uniform_locations[0], 0);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, test_tex_id);
-            glBindBuffer(GL_ARRAY_BUFFER, test_vbo);
-            glEnableVertexAttribArray(test_shader.attribute_locations[0]);
-            glVertexAttribPointer(test_shader.attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0);
-            glDrawArrays(GL_POINTS, 0, TEST_WIDTH * TEST_HEIGHT);
-            glFlush();
-            glFinish();
-
-            GLCHK(glReadPixels(0, 1, 4, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels_from_fb));
-
-            uint8_t *out = pixels_from_fb;
-            uint8_t *end = out + 4 * 4 * 1;
-
-            if (a == 0) {
-                printf("*********\n");
-                while (out < end) {
-                    printf("%d,", out[0]);
-                    printf("%d,", out[1]);
-                    printf("%d,", out[2]);
-                    printf("%d,", out[3]);
-                    out += 4;
-                }
-                printf("\n*********\n");
-                a = 1;
-            }
-
-            return 0;
+            abodRunTest();
+            break;
+        case 20:
+            abodRunTest2();
             break;
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+int abodRunTest2() {
+    static int a = 0;
+    glBlendFunc(GL_ONE, GL_ONE);
+    glEnable(GL_BLEND);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, 4, 3);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glUseProgram(test_shader.program);
+    glUniform1i(test_shader.uniform_locations[0], 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, test_tex_id);
+    glBindBuffer(GL_ARRAY_BUFFER, test2_vbo);
+    glEnableVertexAttribArray(test_shader.attribute_locations[0]);
+    glVertexAttribPointer(test_shader.attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glDrawArrays(GL_POINTS, 0, TEST_POINTS);
+    glFlush();
+    glFinish();
+
+    GLCHK(glReadPixels(0, 1, 4, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels_from_fb));
+
+    uint8_t *out = pixels_from_fb;
+    uint8_t *end = out + 4 * 4 * 1;
+
+    if (a == 0) {
+        printf("*********\n");
+        while (out < end) {
+            printf("%d,", out[0]);
+            printf("%d,", out[1]);
+            printf("%d,", out[2]);
+            printf("%d,", out[3]);
+            out += 4;
+        }
+        printf("\n*********\n");
+        a = 1;
+    }
+
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+int abodRunTest() {
+    static int a = 0;
+    glBlendFunc(GL_ONE, GL_ONE);
+    glEnable(GL_BLEND);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, 4, 3);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glUseProgram(test_shader.program);
+    glUniform1i(test_shader.uniform_locations[0], 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, test_tex_id);
+    glBindBuffer(GL_ARRAY_BUFFER, test_vbo);
+    glEnableVertexAttribArray(test_shader.attribute_locations[0]);
+    glVertexAttribPointer(test_shader.attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glDrawArrays(GL_POINTS, 0, TEST_WIDTH * TEST_HEIGHT);
+    glFlush();
+    glFinish();
+
+    GLCHK(glReadPixels(0, 1, 4, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels_from_fb));
+
+    uint8_t *out = pixels_from_fb;
+    uint8_t *end = out + 4 * 4 * 1;
+
+    if (a == 0) {
+        printf("*********\n");
+        while (out < end) {
+            printf("%d,", out[0]);
+            printf("%d,", out[1]);
+            printf("%d,", out[2]);
+            printf("%d,", out[3]);
+            out += 4;
+        }
+        printf("\n*********\n");
+        a = 1;
+    }
+
+    return 0;
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 void abodMatchHistogramCPU(const RASPITEX_STATE *state) {

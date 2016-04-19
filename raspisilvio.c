@@ -1018,7 +1018,6 @@ void raspisilvioSetTextureData(GLuint name, int width, int height, uint8_t *data
  * @param width Width of the texture.
  * @param height Height of the texture.
  * @param data The pointer to store the vertex data.
- * @param format The data format of the pixels
  * @return void.
  */
 void raspisilvioCreateVertexBufferHistogram(GLuint *name, const int width, const int height, GLfloat **data) {
@@ -1036,5 +1035,20 @@ void raspisilvioCreateVertexBufferHistogram(GLuint *name, const int width, const
         }
     }
     glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 2 * width * height, point_varray, GL_STATIC_DRAW);
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+/* Create the vertex buffer containing the data to be passed to the shader to build histogram of
+ * a part of the texture.
+ *
+ * @param name The name of the vertex buffer.
+ * @param points The number of vertex in the buffer.
+ * @param data The pointer containing the vertex data.
+ * @return void.
+ */
+void raspisilvioCreateVertexBufferHistogramData(GLuint *name, const int points, GLfloat *data) {
+    glGenBuffers(1, name);
+    glBindBuffer(GL_ARRAY_BUFFER, *name);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 2 * points, data, GL_STATIC_DRAW);
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////

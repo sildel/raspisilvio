@@ -167,7 +167,9 @@ void raspisilvioDrawTexture(RASPITEX_STATE *state, GLuint textureName);
 
 void raspisilvioTextureMask(RASPITEX_STATE *state, GLuint maskName, GLuint frameBuffer, GLuint textureName);
 
-void raspisilvioCreateVertexBufferHistogram(GLuint *name, const int width, const int height, GLfloat **pDouble);
+void raspisilvioCreateVertexBufferHistogram(GLuint *name, const int width, const int height, GLfloat **data);
+
+void raspisilvioCreateVertexBufferHistogramData(GLuint *name, const int points, GLfloat *data);
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #endif /* RASPISILVIO_H_ */
 ////////////////////////////////////////////////////////////////////////////////
