@@ -20,15 +20,16 @@ static const int HISTOGRAM_WIDTH = 257;
 
 static const int HISTOGRAM_HEIGHT = 3;
 
-static const int FRAMBE_BUFFER_PREVIEW = 0;
-
-static const int RENDER_STEPS = 20;
+static const int RENDER_STEPS = 23;
 
 static const int TEST_WIDTH = 32;
 
 static const int TEST_HEIGHT = 32;
 
+static const int ABOD_HISTOGRAM_SIZE = 250;
 #define TEST_POINTS 10
+
+#define ABOD_MAX_TRAP_POINTS (20000 * 2)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int abodInit(RASPITEX_STATE *raspitex_state);
@@ -63,7 +64,13 @@ int abodRunTest();
 
 int abodRunTest2();
 
+int abodRunTest3();
+
 void abodFillTest2(const int points);
+
+int buildHistogramTrap(RASPITEX_STATE *pSTATE, GLuint channel);
+
+void abodFillTrapVertex(const int width, const int height);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 RaspisilvioShaderProgram test_shader = {
@@ -177,18 +184,18 @@ RaspisilvioShaderProgram hist_shader = {
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-int render_id = 19;
+int render_id = 20;
 GLuint h_hist_tex_id;
 GLuint i_hist_tex_id;
 GLuint trap_tex_id;
 GLuint hsi_tex_id;
 GLuint hsi_fbo_id;
 HeadingRegion heads = {
-        .xb1 = -0.8f,
-        .xb2 = 0.8f,
+        .xb1 = -0.4f,
+        .xb2 = 0.4f,
         .xt1 = -0.2f,
         .xt2 = 0.2f,
-        .y1 = -0.5f,
+        .y1 = -0.75f,
         .y2 = 0.5f
 };
 uint8_t *pixels_from_fb;
@@ -214,6 +221,17 @@ GLuint test_vbo;
 GLuint test2_vbo;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+GLuint histogram_tex_id;
+
+GLuint histogram_fbo_id;
+
+GLuint ABOD_TRAP_POINTS = 0;
+
+GLuint abod_trap_vbo;
+
+GLfloat abod_trap_vertex[ABOD_MAX_TRAP_POINTS];
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main() {
     int exit_code;
@@ -237,8 +255,6 @@ int main() {
 
     while (1) {
         vcos_sleep(1000);
-
-        abodPrintStep();
 
         fflush(stdin);
         ch = getchar();
@@ -277,9 +293,11 @@ void abodPrintStep() {
             "16- > Camera feed & Reference Big & Mask->Shader & Hist & Matching",
             "17- > Camera feed & Reference Big & Mask->Shader & Hist & Matching CPU",
             "18- > Test Texture",
-            "19- > Test Run",
-            "20- > Test2 Run",
-            "21-> Test Run"
+            "19- > Test - Count Pixels with 255,255,255",
+            "20- > Test - Count Pixels with 255,255,255 - Only 10 pixels",
+            "21- > Test - Histogram 10 bins",
+            "22- > Camera feed & Gauss->HSI & Histogram H",
+            "23- > Camera feed & Gauss->HSI & Histogram I"
     };
     printf("Render id = %d\n%s\n", render_id, render_steps[render_id]);
 }
@@ -330,13 +348,17 @@ int abodInit(RASPITEX_STATE *raspitex_state) {
     raspisilvioCreateTextureData(&pixels_to_test, TEST_WIDTH, TEST_HEIGHT, GL_RGBA);
     abodFillTest(TEST_WIDTH, TEST_HEIGHT);
     raspisilvioCreateTexture(&test_tex_id, GL_FALSE, TEST_WIDTH, TEST_HEIGHT, pixels_to_test, GL_RGBA);
-
     raspisilvioCreateVertexBufferHistogram(&test_vbo, TEST_WIDTH, TEST_HEIGHT, &vertex_hist);
 
     abodFillTest2(TEST_POINTS);
     raspisilvioCreateVertexBufferHistogramData(&test2_vbo, TEST_POINTS, vertex2_hist);
-
     raspisilvioLoadShader(&test_shader);
+
+    raspisilvioCreateTextureFB(&histogram_tex_id, HISTOGRAM_TEX_WIDTH, HISTOGRAM_TEX_HEIGHT, NULL, GL_RGBA,
+                               &histogram_fbo_id);
+
+    abodFillTrapVertex(raspitex_state->width, raspitex_state->height);
+    raspisilvioCreateVertexBufferHistogramData(&abod_trap_vbo, ABOD_TRAP_POINTS, abod_trap_vertex);
 
     return rc;
 }
@@ -346,13 +368,17 @@ void abodFillTest2(const int points) {
     int i = 0;
 
     for (i = 0; i < points; ++i) {
-        if (i < points / 2 + 1) {
+        if (i < 3) {
             vertex2_hist[2 * i + 0] = 0.0f;
             vertex2_hist[2 * i + 1] = 0.0f;
         }
+        else if (i < 7) {
+            vertex2_hist[2 * i + 0] = 0.5f;
+            vertex2_hist[2 * i + 1] = 0.5f;
+        }
         else {
-            vertex2_hist[2 * i + 0] = 0.9f;
-            vertex2_hist[2 * i + 1] = 0.9f;
+            vertex2_hist[2 * i + 0] = 0.99f;
+            vertex2_hist[2 * i + 1] = 0.99;
         }
 
     }
@@ -364,18 +390,12 @@ void abodFillTest(int32_t width, int32_t height) {
     int i, j, counter = 0;
     for (i = 0; i < height; i++) {
         for (j = 0; j < width; j++, counter++) {
-            if (counter < 10) {
-                pixels_to_test[4 * (i * width + j) + 0] = 255;
-                pixels_to_test[4 * (i * width + j) + 1] = 255;
-                pixels_to_test[4 * (i * width + j) + 2] = 255;
-                pixels_to_test[4 * (i * width + j) + 3] = 255;
-            }
-            else {
-                pixels_to_test[4 * (i * width + j) + 0] = 0;
-                pixels_to_test[4 * (i * width + j) + 1] = 0;
-                pixels_to_test[4 * (i * width + j) + 2] = 255;
-                pixels_to_test[4 * (i * width + j) + 3] = 255;
-            }
+            counter %= 256;
+
+            pixels_to_test[4 * (i * width + j) + 0] = counter;
+            pixels_to_test[4 * (i * width + j) + 1] = counter;
+            pixels_to_test[4 * (i * width + j) + 2] = counter;
+            pixels_to_test[4 * (i * width + j) + 3] = 255;
         }
     }
 }
@@ -383,7 +403,7 @@ void abodFillTest(int32_t width, int32_t height) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 void abodFillMask(int32_t width, int32_t height) {
-    int i, j;
+    int i, j, c = 0;
     for (i = 0; i < height; i++) {
         for (j = 0; j < width; j++) {
             if (isInsideTrap(i, j, width, height)) {
@@ -391,6 +411,7 @@ void abodFillMask(int32_t width, int32_t height) {
                 pixels_from_mask[4 * (i * width + j) + 1] = 255;
                 pixels_from_mask[4 * (i * width + j) + 2] = 255;
                 pixels_from_mask[4 * (i * width + j) + 3] = 255;
+                c++;
             } else {
                 pixels_from_mask[4 * (i * width + j) + 0] = 0;
                 pixels_from_mask[4 * (i * width + j) + 1] = 0;
@@ -401,6 +422,22 @@ void abodFillMask(int32_t width, int32_t height) {
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void abodFillTrapVertex(const int width, const int height) {
+    float dx = 1.0f / width;
+    float dy = 1.0f / height;
+    int x, y;
+    ABOD_TRAP_POINTS = 0;
+    for (y = 0; y < height; y++) {
+        for (x = 0; x < width; x++) {
+            if (isInsideTrap(y, x, width, height)) {
+                abod_trap_vertex[2 * ABOD_TRAP_POINTS + 0] = dx * x;
+                abod_trap_vertex[2 * ABOD_TRAP_POINTS + 1] = dy * y;
+                ABOD_TRAP_POINTS++;
+            }
+        }
+    }
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 int isInsideTrap(int row, int col, int32_t width, int32_t height) {
@@ -461,7 +498,12 @@ int isAtLeft(int x4, int y4, int x1, int y1, int x, int y) {
  * @return Zero if successful.
  */
 int abodDraw(RASPITEX_STATE *state) {
-    static int a = 0;
+    static int a = -1;
+
+    if (a != render_id) {
+        abodPrintStep();
+        a = render_id;
+    }
 
     switch (render_id) {
         case 0:
@@ -564,7 +606,76 @@ int abodDraw(RASPITEX_STATE *state) {
         case 20:
             abodRunTest2();
             break;
+        case 21:
+            abodRunTest3();
+            break;
+        case 22:
+            buildHistogramTrap(state, RASPISILVIO_RED);
+            break;
+        case 23:
+            buildHistogramTrap(state, RASPISILVIO_BLUE);
+            break;
     }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+int buildHistogramTrap(RASPITEX_STATE *state, GLuint channel) {
+    static int a = 0;
+    raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
+    raspisilvioBuildHistogram(FRAMBE_BUFFER_PREVIEW, hsi_tex_id, ABOD_HISTOGRAM_SIZE, abod_trap_vbo,
+                              ABOD_TRAP_POINTS, channel);
+
+    GLCHK(glReadPixels(0, 1, ABOD_HISTOGRAM_SIZE, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels_from_fb));
+
+    int i = 0;
+
+    uint8_t *out = pixels_from_fb;
+    uint8_t *end = out + 4 * ABOD_HISTOGRAM_SIZE * 1;
+
+    if (a == 0) {
+        printf("*********\n");
+        while (out < end) {
+            if (out[channel]) {
+                printf("[%d] = %d\n", i, out[channel]);
+            }
+            out += 4;
+            i++;
+        }
+        printf("\n*********\n");
+        a = 1;
+    }
+
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+int abodRunTest3() {
+    static int a = 0;
+
+    raspisilvioBuildHistogram(FRAMBE_BUFFER_PREVIEW, test_tex_id, 10, test_vbo, TEST_WIDTH * TEST_HEIGHT,
+                              RASPISILVIO_BLUE);
+
+    GLCHK(glReadPixels(0, 1, 10, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels_from_fb));
+
+    int i = 0;
+
+    uint8_t *out = pixels_from_fb;
+    uint8_t *end = out + 4 * 10 * 1;
+
+    if (a == 0) {
+        printf("*********\n");
+        while (out < end) {
+            if (out[0]) {
+                printf("[%d] = %d\n", i, out[0]);
+            }
+            out += 4;
+            i++;
+        }
+        printf("\n*********\n");
+        a = 1;
+    }
+
+    return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -596,9 +707,6 @@ int abodRunTest2() {
         printf("*********\n");
         while (out < end) {
             printf("%d,", out[0]);
-            printf("%d,", out[1]);
-            printf("%d,", out[2]);
-            printf("%d,", out[3]);
             out += 4;
         }
         printf("\n*********\n");
@@ -637,9 +745,9 @@ int abodRunTest() {
         printf("*********\n");
         while (out < end) {
             printf("%d,", out[0]);
-            printf("%d,", out[1]);
-            printf("%d,", out[2]);
-            printf("%d,", out[3]);
+//            printf("%d,", out[1]);
+//            printf("%d,", out[2]);
+//            printf("%d,", out[3]);
             out += 4;
         }
         printf("\n*********\n");

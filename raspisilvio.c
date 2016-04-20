@@ -62,6 +62,17 @@ RaspisilvioShaderProgram mask_tex_shader = {
                 {"vertex"},
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+RaspisilvioShaderProgram histogram_tex_shader = {
+        .vs_file = "gl_scenes/histogramVS.glsl",
+        .fs_file = "gl_scenes/histogramFS.glsl",
+        .vertex_source = "",
+        .fragment_source = "",
+        .uniform_names =
+                {"tex", "channel"},
+        .attribute_names =
+                {"vertex"},
+};
+///////////////////////////////////////////////////////////////////////////////////////////////////
 static GLuint quad_vbo;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static GLfloat quad_varray[] = {
@@ -587,6 +598,7 @@ int raspisilvioHelpInit(RASPITEX_STATE *state) {
     raspisilvioLoadShader(&result_shader);
     raspisilvioLoadShader(&mask_camera_shader);
     raspisilvioLoadShader(&mask_tex_shader);
+    raspisilvioLoadShader(&histogram_tex_shader);
 
     glGenBuffers(1, &quad_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, quad_vbo);
@@ -627,6 +639,11 @@ GLuint raspisilvioGetQuad() {
 
 RaspisilvioShaderProgram *raspisilvioGetResultShader() {
     return &result_shader;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+RaspisilvioShaderProgram *raspisilvioGetHistogramShader() {
+    return &histogram_tex_shader;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1028,7 +1045,7 @@ void raspisilvioCreateVertexBufferHistogram(GLuint *name, const int width, const
     float dx = 1.0f / width;
     float dy = 1.0f / height;
     int x, y;
-    for (y = 0; y < width; y++) {
+    for (y = 0; y < height; y++) {
         for (x = 0; x < width; x++) {
             point_varray[2 * (y * width + x) + 0] = dx * x;
             point_varray[2 * (y * width + x) + 1] = dy * y;
@@ -1050,5 +1067,42 @@ void raspisilvioCreateVertexBufferHistogramData(GLuint *name, const int points, 
     glGenBuffers(1, name);
     glBindBuffer(GL_ARRAY_BUFFER, *name);
     glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 2 * points, data, GL_STATIC_DRAW);
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+/* Do processing to a texture using the specified shader program and put it on the specified frame buffer.
+ * The shader is expected to have these parameters:
+ * 1 - First attribute is the vertex and should contains only x and y coordinates
+ * 2 - First uniform is the texture unit and the type should be sampler2D
+ * 3 - Second uniform is the dimension of the pixel in texture coordinates
+ *
+ * @param histogramFB The name of the frame buffer of the histogram texture.
+ * @param textureName The name of the texture.
+ * @param bins The number of histogram bins.
+ * @param points_vbo The vertex buffer containing the points to be evaluated.
+ * @param points The number of points to be evaluated.
+ * @param channel The color channel to be evaluated (RASPISILVIO_RED, RASPISILVIO_GREEN, RASPISILVIO_BLUE).
+ * @return void.
+ */
+void raspisilvioBuildHistogram(GLuint histogramFB, GLuint textureName, GLuint bins, GLuint points_vbo, GLuint points,
+                               GLuint channel) {
+    glBlendFunc(GL_ONE, GL_ONE);
+    glEnable(GL_BLEND);
+    GLCHK(glBindFramebuffer(GL_FRAMEBUFFER, histogramFB));
+    glViewport(0, 0, bins, HISTOGRAM_TEX_HEIGHT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    GLCHK(glUseProgram(raspisilvioGetHistogramShader()->program));
+    GLCHK(glUniform1i(raspisilvioGetHistogramShader()->uniform_locations[0], 0)); // Texture unit
+    GLCHK(glUniform1i(raspisilvioGetHistogramShader()->uniform_locations[1], channel));
+    GLCHK(glActiveTexture(GL_TEXTURE0));
+    GLCHK(glBindTexture(GL_TEXTURE_2D, textureName));
+    GLCHK(glBindBuffer(GL_ARRAY_BUFFER, points_vbo));
+    GLCHK(glEnableVertexAttribArray(raspisilvioGetHistogramShader()->attribute_locations[0]));
+    GLCHK(glVertexAttribPointer(raspisilvioGetHistogramShader()->attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0));
+    GLCHK(glDrawArrays(GL_POINTS, 0, points));
+    glFlush();
+    glFinish();
+    glDisable(GL_BLEND);
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
