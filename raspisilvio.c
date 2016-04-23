@@ -6,6 +6,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #include "RaspiTexUtil.h"
 #include "raspisilvio.h"
+#include "tga.h"
 #include <GLES2/gl2.h>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1104,5 +1105,46 @@ void raspisilvioBuildHistogram(GLuint histogramFB, GLuint textureName, GLuint bi
     glFlush();
     glFinish();
     glDisable(GL_BLEND);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/* Load a tga file and build a texture with the data.
+ *
+ * @param fileName The file path.
+ * @param textureName The name of the texture.
+ * @return void.
+ */
+void raspisilvioLoadTextureFromFile(const char *fileName, GLuint *textureName) {
+    struct tga_header header;
+    uint8_t *pixels_from_file = load_tga(fileName, &header);
+    size_t buffer_size = header.image_info.width * header.image_info.height * 4;
+    raspitexutil_brga_to_rgba(pixels_from_file, buffer_size);
+    raspisilvioCreateTexture(textureName, GL_FALSE, header.image_info.width, header.image_info.height, pixels_from_file,
+                             GL_RGBA);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/* Save a tga file with the data of the current frame buffer.
+ *
+ * @param state The state of the application.
+ * @param fileName The file path.
+ * @return void.
+ */
+void raspisilvioSaveToFile(RASPITEX_STATE *state, const char *fileName) {
+    FILE *fp = fopen(fileName, "wb");
+
+    size_t buffer_size = state->width * state->height * 4;
+    uint8_t *buffer = calloc(buffer_size, 1);
+
+    glReadPixels(0, 0, state->width, state->height, GL_RGBA,
+                 GL_UNSIGNED_BYTE, buffer);
+
+    raspitexutil_brga_to_rgba(buffer, buffer_size);
+    write_tga(fp, state->width, state->height, buffer, buffer_size);
+
+    fclose(fp);
+
+    free(buffer);
+
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////

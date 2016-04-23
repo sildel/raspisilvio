@@ -6,6 +6,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #include "RaspiTexUtil.h"
 #include "raspisilvio.h"
+#include "tga.h"
 #include <GLES2/gl2.h>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -20,16 +21,17 @@ static const int HISTOGRAM_WIDTH = 257;
 
 static const int HISTOGRAM_HEIGHT = 3;
 
-static const int RENDER_STEPS = 23;
+int RENDER_STEPS;
 
 static const int TEST_WIDTH = 32;
 
 static const int TEST_HEIGHT = 32;
 
 static const int ABOD_HISTOGRAM_SIZE = 250;
+static char *const FILE_TO_LOAD = "ttt.tga";
 #define TEST_POINTS 10
 
-#define ABOD_MAX_TRAP_POINTS (20000 * 2)
+#define ABOD_MAX_TRAP_POINTS (20000 * 10)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int abodInit(RASPITEX_STATE *raspitex_state);
@@ -72,6 +74,8 @@ int buildHistogramTrap(RASPITEX_STATE *pSTATE, GLuint channel);
 
 void abodFillTrapVertex(const int width, const int height);
 
+int step26(RASPITEX_STATE *state);
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 RaspisilvioShaderProgram test_shader = {
         .vs_file = "gl_scenes/testVS.glsl",
@@ -98,6 +102,17 @@ RaspisilvioShaderProgram lines_shader = {
 RaspisilvioShaderProgram gauss_hsi_shader = {
         .vs_file = "gl_scenes/simpleVS.glsl",
         .fs_file = "gl_scenes/gaussian5hsiFS.glsl",
+        .vertex_source = "",
+        .fragment_source = "",
+        .uniform_names =
+                {"tex", "tex_unit"},
+        .attribute_names =
+                {"vertex"},
+};
+///////////////////////////////////////////////////////////////////////////////////////////////////
+RaspisilvioShaderProgram gauss_hsi_shader_tex = {
+        .vs_file = "gl_scenes/simpleVS.glsl",
+        .fs_file = "gl_scenes/gaussian5hsiFS_t.glsl",
         .vertex_source = "",
         .fragment_source = "",
         .uniform_names =
@@ -182,20 +197,30 @@ RaspisilvioShaderProgram hist_shader = {
         .attribute_names =
                 {"vertex"},
 };
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-int render_id = 20;
+RaspisilvioShaderProgram hist_compare_shader = {
+        .vs_file = "gl_scenes/simpleVS.glsl",
+        .fs_file = "gl_scenes/histCompareFS.glsl",
+        .vertex_source = "",
+        .fragment_source = "",
+        .uniform_names =
+                {"tex", "hist_h", "hist_i", "threshold"},
+        .attribute_names =
+                {"vertex"},
+};
+///////////////////////////////////////////////////////////////////////////////////////////////////
+int render_id = 16;
 GLuint h_hist_tex_id;
 GLuint i_hist_tex_id;
 GLuint trap_tex_id;
 GLuint hsi_tex_id;
 GLuint hsi_fbo_id;
 HeadingRegion heads = {
-        .xb1 = -0.4f,
-        .xb2 = 0.4f,
+        .xb1 = -0.8f,
+        .xb2 = 0.8f,
         .xt1 = -0.2f,
         .xt2 = 0.2f,
-        .y1 = -0.75f,
+        .y1 = -0.5f,
         .y2 = 0.5f
 };
 uint8_t *pixels_from_fb;
@@ -216,6 +241,7 @@ GLfloat vertex2_hist[TEST_POINTS * 2];
 
 GLuint mask_tex_id;
 GLuint test_tex_id;
+GLuint file_tex_id;
 
 GLuint test_vbo;
 GLuint test2_vbo;
@@ -232,6 +258,14 @@ GLuint abod_trap_vbo;
 GLfloat abod_trap_vertex[ABOD_MAX_TRAP_POINTS];
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
+GLuint histogram_h_tex;
+
+GLuint histogram_h_fbo_id;
+
+GLuint histogram_i_tex;
+
+GLuint histogram_i_fbo_id;
 
 int main() {
     int exit_code;
@@ -273,6 +307,7 @@ int main() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void abodPrintStep() {
+    RENDER_STEPS = 26;
     static char *render_steps[] = {
             "0 - > Camera feed",
             "1 - > Camera feed & Gauss",
@@ -297,7 +332,10 @@ void abodPrintStep() {
             "20- > Test - Count Pixels with 255,255,255 - Only 10 pixels",
             "21- > Test - Histogram 10 bins",
             "22- > Camera feed & Gauss->HSI & Histogram H",
-            "23- > Camera feed & Gauss->HSI & Histogram I"
+            "23- > Camera feed & Gauss->HSI & Histogram I",
+            "24- > File texture",
+            "25- > File texture & Gauss->HSI",
+            "26- > File texture & Gauss->HSI & Histogram I"
     };
     printf("Render id = %d\n%s\n", render_id, render_steps[render_id]);
 }
@@ -312,6 +350,9 @@ int abodInit(RASPITEX_STATE *raspitex_state) {
     int rc = 0;
 
     rc = raspisilvioHelpInit(raspitex_state);
+
+    raspisilvioLoadShader(&gauss_hsi_shader_tex);
+
     raspisilvioLoadShader(&lines_shader);
     raspisilvioLoadShader(&gauss_hsi_shader);
     raspisilvioLoadShader(&mask_shader);
@@ -359,6 +400,13 @@ int abodInit(RASPITEX_STATE *raspitex_state) {
 
     abodFillTrapVertex(raspitex_state->width, raspitex_state->height);
     raspisilvioCreateVertexBufferHistogramData(&abod_trap_vbo, ABOD_TRAP_POINTS, abod_trap_vertex);
+    raspisilvioLoadTextureFromFile(FILE_TO_LOAD, &file_tex_id);
+    raspisilvioLoadShader(&hist_compare_shader);
+
+    raspisilvioCreateTextureFB(&histogram_h_tex, HISTOGRAM_TEX_WIDTH, HISTOGRAM_TEX_HEIGHT, NULL, GL_RGBA,
+                               &histogram_h_fbo_id);
+    raspisilvioCreateTextureFB(&histogram_i_tex, HISTOGRAM_TEX_WIDTH, HISTOGRAM_TEX_HEIGHT, NULL, GL_RGBA,
+                               &histogram_i_fbo_id);
 
     return rc;
 }
@@ -499,6 +547,7 @@ int isAtLeft(int x4, int y4, int x1, int y1, int x, int y) {
  */
 int abodDraw(RASPITEX_STATE *state) {
     static int a = -1;
+    static int c = 0;
 
     if (a != render_id) {
         abodPrintStep();
@@ -508,6 +557,10 @@ int abodDraw(RASPITEX_STATE *state) {
     switch (render_id) {
         case 0:
             raspisilvioDrawCamera(state);
+//            if (c == 0) {
+//                raspisilvioSaveToFile(state, FILE_TO_LOAD);
+//                c = 1;
+//            }
             break;
         case 1:
             raspisilvioProcessingCamera(&gauss_shader_es, state, FRAMBE_BUFFER_PREVIEW);
@@ -577,7 +630,8 @@ int abodDraw(RASPITEX_STATE *state) {
             raspisilvioDrawTexture(state, trap_tex_id);
             break;
         case 16:
-            raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
+//            raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
+            raspisilvioProcessingTexture(&gauss_hsi_shader_tex, state, hsi_fbo_id, file_tex_id);
             abodDrawMaskX();
             abodExtractReference(state, &w, &h);
             abodBuildHistogram(w, h);
@@ -588,7 +642,7 @@ int abodDraw(RASPITEX_STATE *state) {
             abodMatchHistogram();
             break;
         case 17:
-            raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
+            raspisilvioProcessingTexture(&gauss_hsi_shader_tex, state, hsi_fbo_id, file_tex_id);
             glReadPixels(0, 0, state->width, state->height, GL_RGBA, GL_UNSIGNED_BYTE, pixels_from_fb_full);
             abodDrawMaskX();
             abodExtractReference(state, &w, &h);
@@ -615,7 +669,75 @@ int abodDraw(RASPITEX_STATE *state) {
         case 23:
             buildHistogramTrap(state, RASPISILVIO_BLUE);
             break;
+        case 24:
+            raspisilvioDrawTexture(state, file_tex_id);
+            break;
+        case 25:
+            raspisilvioProcessingTexture(&gauss_hsi_shader_tex, state, FRAMBE_BUFFER_PREVIEW, file_tex_id);
+            break;
+        case 26:
+            step26(state);
+            break;
     }
+
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+int step26(RASPITEX_STATE *state) {
+    static int a = 0;
+    raspisilvioProcessingTexture(&gauss_hsi_shader_tex, state, hsi_fbo_id, file_tex_id);
+    raspisilvioBuildHistogram(histogram_h_fbo_id, hsi_tex_id, ABOD_HISTOGRAM_SIZE, abod_trap_vbo,
+                              ABOD_TRAP_POINTS, RASPISILVIO_RED);
+
+    GLCHK(glReadPixels(0, 1, ABOD_HISTOGRAM_SIZE, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels_from_fb));
+
+    int i = 0;
+
+    uint8_t *out = pixels_from_fb;
+    uint8_t *end = out + 4 * ABOD_HISTOGRAM_SIZE * 1;
+
+    if (a == 0) {
+        printf("*********\n");
+        while (out < end) {
+            if (out[RASPISILVIO_RED]) {
+                printf("[%d] = %d\n", i, out[RASPISILVIO_RED]);
+            }
+            out += 4;
+            i++;
+        }
+        printf("\n*********\n");
+        a = 1;
+    }
+
+    raspisilvioBuildHistogram(histogram_i_fbo_id, hsi_tex_id, ABOD_HISTOGRAM_SIZE, abod_trap_vbo,
+                              ABOD_TRAP_POINTS, RASPISILVIO_BLUE);
+
+    GLCHK(glBindFramebuffer(GL_FRAMEBUFFER, FRAMBE_BUFFER_PREVIEW));
+    glViewport(0, 0, state->width, state->height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    GLCHK(glUseProgram(hist_compare_shader.program));
+    GLCHK(glUniform1i(hist_compare_shader.uniform_locations[0], 0)); // Texture unit
+    GLCHK(glUniform1i(hist_compare_shader.uniform_locations[1], 1));
+    GLCHK(glUniform1i(hist_compare_shader.uniform_locations[2], 2));
+    GLCHK(glUniform2f(hist_compare_shader.uniform_locations[3], 0.01f, 0.0f)); // threshold
+
+    GLCHK(glActiveTexture(GL_TEXTURE0));
+    GLCHK(glBindTexture(GL_TEXTURE_2D, hsi_tex_id));
+    GLCHK(glActiveTexture(GL_TEXTURE1));
+    GLCHK(glBindTexture(GL_TEXTURE_2D, histogram_h_tex));
+    GLCHK(glActiveTexture(GL_TEXTURE2));
+    GLCHK(glBindTexture(GL_TEXTURE_2D, histogram_i_tex));
+    GLCHK(glBindBuffer(GL_ARRAY_BUFFER, raspisilvioGetQuad()));
+    GLCHK(glEnableVertexAttribArray(hist_compare_shader.attribute_locations[0]));
+    GLCHK(glVertexAttribPointer(hist_compare_shader.attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0));
+    GLCHK(glDrawArrays(GL_TRIANGLES, 0, 6));
+    glFlush();
+    glFinish();
+
+    return 0;
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

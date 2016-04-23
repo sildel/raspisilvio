@@ -182,6 +182,10 @@ void raspisilvioCreateVertexBufferHistogramData(GLuint *name, const int points, 
 
 void raspisilvioBuildHistogram(GLuint histogramFB, GLuint textureName, GLuint bins, GLuint points_vbo, GLuint points,
                                GLuint channel);
+
+void raspisilvioSaveToFile(RASPITEX_STATE *state, const char *file_name);
+
+void raspisilvioLoadTextureFromFile(const char *file_name, GLuint *tName);
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #endif /* RASPISILVIO_H_ */
 ////////////////////////////////////////////////////////////////////////////////
