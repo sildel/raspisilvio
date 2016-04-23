@@ -110,6 +110,11 @@ typedef struct {
 typedef struct {
     RaspisilvioState state;
 
+    int useRGBATexture;
+    int useYTexture;
+    int useUTexture;
+    int useVTexture;
+
     int (*init)(struct RASPITEX_STATE *state);
 
     int (*draw)(struct RASPITEX_STATE *state);
@@ -186,6 +191,10 @@ void raspisilvioBuildHistogram(GLuint histogramFB, GLuint textureName, GLuint bi
 void raspisilvioSaveToFile(RASPITEX_STATE *state, const char *file_name);
 
 void raspisilvioLoadTextureFromFile(const char *file_name, GLuint *tName);
+
+void raspisilvioProcessingCameraY(RaspisilvioShaderProgram *shader, RASPITEX_STATE *state, GLuint frameBuffer);
+
+void raspisilvioDrawCameraY(RASPITEX_STATE *state);
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #endif /* RASPISILVIO_H_ */
 ////////////////////////////////////////////////////////////////////////////////
