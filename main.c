@@ -209,7 +209,7 @@ RaspisilvioShaderProgram hist_compare_shader = {
                 {"vertex"},
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-int render_id = 16;
+int render_id = 0;
 GLuint h_hist_tex_id;
 GLuint i_hist_tex_id;
 GLuint trap_tex_id;
@@ -630,8 +630,8 @@ int abodDraw(RASPITEX_STATE *state) {
             raspisilvioDrawTexture(state, trap_tex_id);
             break;
         case 16:
-//            raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
-            raspisilvioProcessingTexture(&gauss_hsi_shader_tex, state, hsi_fbo_id, file_tex_id);
+            raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
+//            raspisilvioProcessingTexture(&gauss_hsi_shader_tex, state, hsi_fbo_id, file_tex_id);
             abodDrawMaskX();
             abodExtractReference(state, &w, &h);
             abodBuildHistogram(w, h);
@@ -642,7 +642,7 @@ int abodDraw(RASPITEX_STATE *state) {
             abodMatchHistogram();
             break;
         case 17:
-            raspisilvioProcessingTexture(&gauss_hsi_shader_tex, state, hsi_fbo_id, file_tex_id);
+            raspisilvioProcessingCamera(&gauss_hsi_shader, state, hsi_fbo_id);
             glReadPixels(0, 0, state->width, state->height, GL_RGBA, GL_UNSIGNED_BYTE, pixels_from_fb_full);
             abodDrawMaskX();
             abodExtractReference(state, &w, &h);
@@ -677,6 +677,9 @@ int abodDraw(RASPITEX_STATE *state) {
             break;
         case 26:
             step26(state);
+            break;
+        case 27:
+            step27(state);
             break;
     }
 

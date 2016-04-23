@@ -201,6 +201,9 @@ static void update_fps()
       frame_count = 0;
       time_start = time_now;
       vcos_log_info("%3.2f FPS", fps);
+      printf("\n*******\n");
+      printf("%3.2f FPS", fps);
+      printf("\n*******\n");
    }
 }
 
