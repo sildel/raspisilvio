@@ -47,37 +47,40 @@ void main(void)
     col += 4.0/256.0 * texture2D(tex, vec2(xp1, yp2));
     col += 1.0/256.0 * texture2D(tex, vec2(xp2, yp2));
 
-    float temp = max(col.r,col.g);
-    float max_col = max(col.b,temp);
+    float R = col.r * 255.;
+    float G = col.g * 255.;
+    float B = col.b * 255.;
 
-    float temp2 = min(col.r,col.g);
-    float min_col = min(col.b,temp2);
+    float H;
+    float V = max(max(R, G), B);
+    float S;
 
-    float i = (col.r + col.g + col.b) / 3.0;
-
-    float c = max_col - min_col;
-    
-    float s = 0.0;
-
-    if(c != 0.0)
+    if (V == 0.)
     {
-        s = 1.0 - min_col / i;
+        S = 0.;
     }
-    
-    float h = 0.0;
-    
-    if(max_col == col.r)
+    else
     {
-        h = (60.0 * abs(col.g - col.b)/c) / 360.0 ;
-    }
-    else if(max_col  == col.g)
-    {
-        h = (120.0 + 60.0 * abs(col.b - col.r)/c) / 360.0 ;
-    }
-    else if(max_col == col.b)
-    {
-        h = (240.0 + 60.0 * abs(col.r - col.g)/c) / 360.0 ;
+        S = (V-min(min(R, G), B))* 255. / V;
     }
 
-    gl_FragColor = vec4(h,s,i,1.0);
+    if (int(V) == int(R))
+    {
+        H = (G-B)*60./S;
+    }
+    else if (int(V) == int(G))
+    {
+        H = 180. + (B-R)*60./S;
+    }
+    else
+    {
+        H = 240. + (R-G)*60./S;
+    }
+
+    if (H < 0.)
+    {
+        H+=360.;
+    }
+
+    gl_FragColor = vec4(H/512., S/255., V/255., 1.).bgra;
 }
