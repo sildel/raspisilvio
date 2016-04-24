@@ -1,0 +1,9 @@
+
+Iddle 99.8%
+Step	Description					FPS			CPU %
+0		Camera						60			2.0
+1		Sobel						60			2.0
+2		Sobel X						60			2.0
+3		Sobel Y 					60			2.0
+4		Sobel MXY					60			2.0
+5		Hough						47.50		2.3
