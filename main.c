@@ -76,13 +76,13 @@ RaspisilvioShaderProgram histCompareShader = {
         .attribute_names =
                 {"vertex"},
 };
-int hThreshold = 100;
-int iThreshold = 100;
+int hThreshold = 1;
+int iThreshold = 0;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int lastRenderStep;
 int abodHistogramSize = 250;
-static char *const fileToLoad = "ttt.tga";
-int renderId = 0;
+static char *const fileToLoad = "02.tga";
+int renderId = 5;
 HeadingRegion heads = {
         .xb1 = -0.8f,
         .xb2 = 0.8f,
@@ -271,7 +271,7 @@ int isAtLeft(int x4, int y4, int x1, int y1, int x, int y) {
  */
 int abodDraw(RASPITEX_STATE *state) {
     static int a = -1;
-    static int c = 0;
+    static int c = 0, u = 0, v = 0, w = 0, x = 0;
 
     if (a != renderId) {
         abodPrintStep();
@@ -284,18 +284,38 @@ int abodDraw(RASPITEX_STATE *state) {
             break;
         case 1:
             raspisilvioProcessingTexture(&gaussHsiShaderTex, state, FRAMBE_BUFFER_PREVIEW, fileTexId);
+            if (c == 0) {
+                c = 1;
+                raspisilvioSaveToFile(state, "step1.tga");
+            }
             break;
         case 2:
             showHistogramPoints(state);
+            if (u == 0) {
+                u = 1;
+                raspisilvioSaveToFile(state, "step2.tga");
+            }
             break;
         case 3:
             buildHistogramTrap(state, RASPISILVIO_RED, histogramHFBOId, histogramHTexId);
+            if (v == 0) {
+                v = 1;
+                raspisilvioSaveToFile(state, "step3.tga");
+            }
             break;
         case 4:
             buildHistogramTrap(state, RASPISILVIO_BLUE, histogramIFBOId, histogramITexId);
+            if (w == 0) {
+                w = 1;
+                raspisilvioSaveToFile(state, "step4.tga");
+            }
             break;
         case 5:
             histogramCompare(state);
+            if (x == 0) {
+                x = 1;
+                raspisilvioSaveToFile(state, "step5.tga");
+            }
             break;
     }
 
@@ -319,7 +339,6 @@ void showHistogramPoints(RASPITEX_STATE *state) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int histogramCompare(RASPITEX_STATE *state) {
-    static int a = 0;
     raspisilvioProcessingTexture(&gaussHsiShaderTex, state, hsiFBOId, fileTexId);
     raspisilvioBuildHistogram(histogramHFBOId, hsiTexId, abodHistogramSize, abodTrapVbo,
                               abodTrapPoints, RASPISILVIO_RED);
@@ -334,7 +353,7 @@ int histogramCompare(RASPITEX_STATE *state) {
     GLCHK(glUniform1i(histCompareShader.uniform_locations[0], 0)); // Texture unit
     GLCHK(glUniform1i(histCompareShader.uniform_locations[1], 1));
     GLCHK(glUniform1i(histCompareShader.uniform_locations[2], 2));
-    GLCHK(glUniform2f(histCompareShader.uniform_locations[3], 0.01f, 0.0f)); // threshold
+    GLCHK(glUniform2f(histCompareShader.uniform_locations[3], hThreshold / 255.0f, iThreshold / 255.0f)); // threshold
 
     GLCHK(glActiveTexture(GL_TEXTURE0));
     GLCHK(glBindTexture(GL_TEXTURE_2D, hsiTexId));
@@ -355,7 +374,6 @@ int histogramCompare(RASPITEX_STATE *state) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int buildHistogramTrap(RASPITEX_STATE *state, int channel, GLuint hFBId, GLuint hTexId) {
-    static int a = 0;
     raspisilvioProcessingTexture(&gaussHsiShaderTex, state, hsiFBOId, fileTexId);
     raspisilvioBuildHistogram(hFBId, hsiTexId, abodHistogramSize, abodTrapVbo,
                               abodTrapPoints, channel);
@@ -363,5 +381,4 @@ int buildHistogramTrap(RASPITEX_STATE *state, int channel, GLuint hFBId, GLuint 
 
     return 0;
 }
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
