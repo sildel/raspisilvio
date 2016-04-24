@@ -20,7 +20,7 @@ void main(void)
             color = col.b;
         }
     }
+    color = color / 128. * 255.;
     gl_PointSize = 1.0;
-    float nindex = 2.0 * color - 1.0; // normalized device space
-    gl_Position = vec4(nindex,0.0,0.0,1.0);
+    gl_Position = vec4(-1. + color,0.0,0.0,1.0);
 }

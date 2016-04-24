@@ -47,9 +47,9 @@ void main(void)
     col += 4.0/256.0 * texture2D(tex, vec2(xp1, yp2));
     col += 1.0/256.0 * texture2D(tex, vec2(xp2, yp2));
 
-    float R = color.r * 255.;
-    float G = color.g * 255.;
-    float B = color.b * 255.;
+    float R = col.r * 255.;
+    float G = col.g * 255.;
+    float B = col.b * 255.;
 
     float H;
     float V = max(max(R, G), B);

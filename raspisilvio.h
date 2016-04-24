@@ -58,6 +58,9 @@
 #define RASPISILVIO_GREEN 1
 #define RASPISILVIO_BLUE 2
 ////////////////////////////////////////////////////////////////////////////////
+#define POINTS_LINES 2
+#define COORDS_POINTS 2
+////////////////////////////////////////////////////////////////////////////////
 /** Structure containing all state information for the current run
  */
 typedef struct {
@@ -142,12 +145,6 @@ RaspisilvioShaderProgram *raspisilvioGetResultShader();
 
 RaspisilvioShaderProgram *raspisilvioGetPreviewShader();
 
-void raspisilvioInitHist(RaspisilvioHistogram *hist, int b_width);
-
-void raspisilvioWriteHistToTexture(RaspisilvioHistogram *hist, uint8_t *text);
-
-int raspisilvioGetHistogramFilteredValue(RaspisilvioHistogram *hist, int value);
-
 void raspisilvioCreateTexture(GLuint *name, int onlyName, int width, int height, uint8_t *data, int format);
 
 void raspisilvioCreateTextureFB(GLuint *nameTexture, int width, int height, uint8_t *data, int format,
@@ -182,6 +179,8 @@ void raspisilvioCreateVertexBufferHistogramData(GLuint *name, const int points, 
 
 void raspisilvioBuildHistogram(GLuint histogramFB, GLuint textureName, GLuint bins, GLuint points_vbo, GLuint points,
                                GLuint channel);
+
+void raspisilvioDrawdHistogram(RASPITEX_STATE *state, GLuint histogramName, GLuint bins);
 
 void raspisilvioSaveToFile(RASPITEX_STATE *state, const char *file_name);
 

@@ -10,6 +10,8 @@
 #include <GLES2/gl2.h>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+GLfloat histogramPoints[POINTS_LINES * COORDS_POINTS * HISTOGRAM_TEX_WIDTH];
+///////////////////////////////////////////////////////////////////////////////////////////////////
 const EGLint raspisilvio_matching_egl_config_attribs[] = {
         EGL_RED_SIZE, 8,
         EGL_GREEN_SIZE, 8,
@@ -59,6 +61,17 @@ RaspisilvioShaderProgram mask_tex_shader = {
         .fragment_source = "",
         .uniform_names =
                 {"tex", "mask"},
+        .attribute_names =
+                {"vertex"},
+};
+///////////////////////////////////////////////////////////////////////////////////////////////////
+RaspisilvioShaderProgram histogram_drawer_tex_shader = {
+        .vs_file = "gl_scenes/histogramDrawerVS.glsl",
+        .fs_file = "gl_scenes/histogramDrawerFS.glsl",
+        .vertex_source = "",
+        .fragment_source = "",
+        .uniform_names =
+                {"tex", "bins"},
         .attribute_names =
                 {"vertex"},
 };
@@ -587,7 +600,18 @@ int raspisilvioStop(RaspisilvioApplication *app) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void raspisilvioInitHistogramPoints() {
+    int i;
+    for (i = 0; i < HISTOGRAM_TEX_WIDTH; ++i) {
+        histogramPoints[4 * i + 0] = i; // x bottom
+        histogramPoints[4 * i + 1] = -1.0f; // y bottom
 
+        histogramPoints[4 * i + 2] = i; // x top
+        histogramPoints[4 * i + 3] = 1.0f; // y top
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 int raspisilvioHelpInit(RASPITEX_STATE *state) {
     int rc = 0;
 
@@ -600,6 +624,9 @@ int raspisilvioHelpInit(RASPITEX_STATE *state) {
     raspisilvioLoadShader(&mask_camera_shader);
     raspisilvioLoadShader(&mask_tex_shader);
     raspisilvioLoadShader(&histogram_tex_shader);
+    raspisilvioLoadShader(&histogram_drawer_tex_shader);
+
+    raspisilvioInitHistogramPoints();
 
     glGenBuffers(1, &quad_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, quad_vbo);
@@ -643,6 +670,11 @@ RaspisilvioShaderProgram *raspisilvioGetResultShader() {
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
+RaspisilvioShaderProgram *raspisilvioGetHistogramDrawerShader() {
+    return &histogram_drawer_tex_shader;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
 RaspisilvioShaderProgram *raspisilvioGetHistogramShader() {
     return &histogram_tex_shader;
 }
@@ -652,59 +684,7 @@ RaspisilvioShaderProgram *raspisilvioGetHistogramShader() {
 RaspisilvioShaderProgram *raspisilvioGetPreviewShader() {
     return &preview_shader;
 }
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-
-void raspisilvioInitHist(RaspisilvioHistogram *hist, int b_width) {
-    hist->bin_width = b_width;
-    hist->count = 0;
-
-    int i;
-    for (i = 0; i < 257; i++) {
-        hist->bins[i] = 0;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-void raspisilvioWriteHistToTexture(RaspisilvioHistogram *hist, uint8_t *text) {
-    int i, aux;
-    int n_bins = 255 / hist->bin_width + 1;
-
-    for (i = 0; i < n_bins; i++) {
-        int sum = hist->bins[i] + hist->bins[i + 1];
-        if (i) {
-            sum += hist->bins[i - 1];
-        }
-        sum /= 3;
-
-        text[4 * i + 3] = sum / 1000000 + 10;
-        aux = sum % 1000000;
-        text[4 * i + 2] = aux / 10000 + 10;
-        aux = aux % 10000;
-        text[4 * i + 1] = aux / 100 + 10;
-        text[4 * i] = aux % 100 + 10;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-int raspisilvioGetHistogramFilteredValue(RaspisilvioHistogram *hist, int value) {
-    int bin_index = value / hist->bin_width;
-    int average;
-
-    if (bin_index) {
-
-        average = (hist->bins[bin_index] +
-                   hist->bins[bin_index + 1] +
-                   hist->bins[bin_index - 1]) / 3;
-    } else {
-        average = (hist->bins[bin_index] +
-                   hist->bins[bin_index + 1]) / 3;
-    }
-}
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
 /* Create a texture.
  *
  * @param name The name of the texture.
@@ -1106,7 +1086,34 @@ void raspisilvioBuildHistogram(GLuint histogramFB, GLuint textureName, GLuint bi
     glFinish();
     glDisable(GL_BLEND);
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
+/* Draw a histogram chart
+ *
+ * @param state The state of the application.
+ * @param histogramName The name of the texture containing the histogram.
+ * @param bins The number of histogram bins.
+ * @return void.
+ */
+void raspisilvioDrawdHistogram(RASPITEX_STATE *state, GLuint histogramName, GLuint bins) {
+    GLCHK(glBindFramebuffer(GL_FRAMEBUFFER, FRAMBE_BUFFER_PREVIEW));
+    glViewport(0, 0, state->width, state->height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    GLCHK(glUseProgram(raspisilvioGetHistogramDrawerShader()->program));
+    GLCHK(glUniform1i(raspisilvioGetHistogramDrawerShader()->uniform_locations[0], 0)); // Texture unit
+    GLCHK(glUniform1f(raspisilvioGetHistogramDrawerShader()->uniform_locations[1], bins)); // bins
+    GLCHK(glActiveTexture(GL_TEXTURE0));
+    GLCHK(glBindTexture(GL_TEXTURE_2D, histogramName));
+
+    GLCHK(glBindBuffer(GL_ARRAY_BUFFER, 0));
+    GLCHK(glEnableVertexAttribArray(raspisilvioGetHistogramDrawerShader()->attribute_locations[0]));
+    GLCHK(glVertexAttribPointer(raspisilvioGetHistogramDrawerShader()->attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0,
+                                histogramPoints));
+    GLCHK(glDrawArrays(GL_LINES, 0, bins * 2));
+    glFlush();
+    glFinish();
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /* Load a tga file and build a texture with the data.
  *
