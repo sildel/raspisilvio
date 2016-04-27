@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project(raspisilvio)
 SET(COMPILE_DEFINITIONS -Werror)
 
-set(OpenCV_DIR D:/build)
+set(OpenCV_DIR ${PROJECT_SOURCE_DIR}/../OpenCV/build)
 
 include_directories(${PROJECT_SOURCE_DIR}/../userland-master)
 include_directories(${PROJECT_SOURCE_DIR}/../userland-master/interface/vcos/pthreads)
