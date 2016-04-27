@@ -10,12 +10,15 @@ extern "C" {
 #include "tga.h"
 #include <GLES2/gl2.h>
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////
 #include <highgui.h>
 #include <cv.h>
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+using namespace cv;
+///////////////////////////////////////////////////////////////////////////////////////////////////
 #define ABOD_MAX_TRAP_POINTS (20000 * 10)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// Struct containing the points that describe the trapecius that represents the heading of the
+// Structure containing the points that describe the trapezium that represents the heading of the
 // robot
 typedef struct {
     float xb1, xb2;
@@ -86,7 +89,7 @@ int iThreshold = 0;
 int lastRenderStep;
 int abodHistogramSize = 250;
 static char *const fileToLoad = "02.tga";
-int renderId = 5;
+int renderId = 8;
 HeadingRegion heads = {
         .xb1 = -0.8f,
         .xb2 = 0.8f,
@@ -104,13 +107,17 @@ GLuint fileTexId;
 GLuint abodTrapPoints = 0;
 GLuint abodTrapVbo;
 GLfloat abodTrapVertex[ABOD_MAX_TRAP_POINTS];
-using namespace cv;
+
+
+Mat src, filtered, trap_mask, hsv_image, h_hist, i_hist, final;
+vector<Mat> hsv_planes;
+int histSize = abodHistogramSize;
+float range[] = {0, 255};
+const float *histRange = {range};
+void cpuHistCompare();
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main() {
     int exit_code;
-
-    Mat src;
-    src = imread( fileToLoad, 1 );
 
     RaspisilvioApplication abod;
     raspisilvioGetDefault(&abod);
@@ -150,7 +157,7 @@ int main() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Function to write current step to console
 void abodPrintStep() {
-    lastRenderStep = 5;
+    lastRenderStep = 9;
     static char *render_steps[] = {
             "0- > File texture",
             "1- > File texture & Gauss->HSI",
@@ -158,6 +165,10 @@ void abodPrintStep() {
             "3- > Histogram H",
             "4- > Histogram I",
             "5- > ABOD Result",
+            "6- > CPU - Gauss",
+            "7- > CPU - Gauss, HSI",
+            "8- > CPU - Histogram",
+            "9- > CPU - Histogram Compare",
     };
     printf("Render id = %d\n%s\n", renderId, render_steps[renderId]);
 }
@@ -170,6 +181,21 @@ void abodPrintStep() {
  */
 int abodInit(RASPITEX_STATE *raspitex_state) {
     int rc = 0;
+
+    src = imread("01.jpg", 1);
+    final = Mat::zeros(Size(src.cols, src.rows), CV_8UC1);
+    trap_mask = Mat::zeros(Size(src.cols, src.rows), CV_8UC1);
+    int trapezium_offset = (heads.xb1 + 1.0f) / 2 * src.cols;
+    int trapezium_B = (heads.xb2 - heads.xb1) / 2 * src.cols;
+    int trapezium_T = (heads.xt2 - heads.xt1) / 2 * src.cols;
+    int trapezium_H = (heads.y1 + 1.0f) / 2 * src.rows;
+    Point trap[] = {
+            Point(trapezium_offset, src.rows),
+            Point(trapezium_offset + trapezium_B, src.rows),
+            Point(trapezium_offset + trapezium_B / 2 + trapezium_T / 2, src.rows - trapezium_H),
+            Point(trapezium_offset + trapezium_B / 2 - trapezium_T / 2, src.rows - trapezium_H)
+    };
+    fillConvexPoly(trap_mask, trap, 4, Scalar(255));
 
     rc = raspisilvioHelpInit(raspitex_state);
 
@@ -324,9 +350,52 @@ int abodDraw(RASPITEX_STATE *state) {
                 raspisilvioSaveToFile(state, "step5.tga");
             }
             break;
+        case 6:
+            GaussianBlur(src, filtered, Size(5, 5), 0);
+            break;
+        case 7:
+            GaussianBlur(src, filtered, Size(5, 5), 0);
+            cvtColor(filtered, hsv_image, COLOR_BGR2HSV);
+            break;
+        case 8:
+            GaussianBlur(src, filtered, Size(5, 5), 0);
+            cvtColor(filtered, hsv_image, COLOR_BGR2HSV);
+            split(hsv_image, hsv_planes);
+            calcHist(&hsv_planes[0], 1, 0, trap_mask, h_hist, 1, &histSize, &histRange);
+            break;
+        case 9:
+            cpuHistCompare();
+            break;
     }
 
     return 0;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void cpuHistCompare() {
+    GaussianBlur(src, filtered, Size(5, 5), 0);
+    cvtColor(filtered, hsv_image, COLOR_BGR2HSV);
+    split(hsv_image, hsv_planes);
+    histSize = abodHistogramSize;
+    calcHist(&hsv_planes[0], 1, 0, trap_mask, h_hist, 1, &histSize, &histRange);
+    calcHist(&hsv_planes[2], 1, 0, trap_mask, i_hist, 1, &histSize, &histRange);
+
+    for (int i = 0; i < src.rows; i++) {
+        for (int j = 0; j < src.cols; j++) {
+            int index = hsv_planes[0].at<uchar>(i, j);
+            float r = h_hist.at<float>(index);
+            float p = i_hist.at<float>(index);
+
+
+            if(r<hThreshold || p < iThreshold)
+            {
+                final.at<uchar>(i, j) = 255;
+            }
+            else
+            {
+                final.at<uchar>(i, j) = 0;
+            }
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

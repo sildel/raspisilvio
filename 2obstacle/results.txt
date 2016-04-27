@@ -1,9 +1,0 @@
-
-Iddle 99.6%
-Step	Description					FPS			CPU %
-0		File texture				60			1.3
-1		File texture & Gauss->HSI	60			1.7
-2		Points for Histogram		60			1.3
-3		Histogram H 				39.87		2.0
-4		Histogram I					42.71		2.0
-5		ABOD Result					28.53		1.7

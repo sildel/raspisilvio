@@ -11,7 +11,7 @@ include_directories(${PROJECT_SOURCE_DIR}/../userland-master/host_applications/l
 include_directories(${PROJECT_SOURCE_DIR}/../userland-master/interface/khronos/include)
 include_directories(${PROJECT_SOURCE_DIR})
 
-find_package(OpenCV REQUIRED core highgui)
+find_package(OpenCV REQUIRED core highgui imgproc)
 
 set(GL_SCENE_SOURCES
         gl_scenes/models.c
