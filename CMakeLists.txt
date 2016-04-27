@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8)
 project(raspisilvio)
 SET(COMPILE_DEFINITIONS -Werror)
 
+set(OpenCV_DIR D:/build)
+
 include_directories(${PROJECT_SOURCE_DIR}/../userland-master)
 include_directories(${PROJECT_SOURCE_DIR}/../userland-master/interface/vcos/pthreads)
 include_directories(${PROJECT_SOURCE_DIR}/../userland-master/interface/vmcs_host/linux)
@@ -24,7 +26,7 @@ set(COMMON_SOURCES
         RaspiPreview.c
         RaspiCLI.c)
 
-add_executable(raspisilvio ${COMMON_SOURCES} raspisilvio.c main.c RaspiTex.c RaspiTexUtil.c tga.c ${GL_SCENE_SOURCES})
+add_executable(raspisilvio ${COMMON_SOURCES} raspisilvio.c main.cpp RaspiTex.c RaspiTexUtil.c tga.c ${GL_SCENE_SOURCES})
 
 set(THE_LIBS
         ${PROJECT_SOURCE_DIR}/../userland-master/build/lib/libmmal_core.so

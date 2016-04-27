@@ -4,10 +4,14 @@
 // based on raspicam applications of https://github.com/raspberrypi/userland
 // silviodelgado70@gmail.com
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+extern "C" {
 #include "RaspiTexUtil.h"
 #include "raspisilvio.h"
 #include "tga.h"
 #include <GLES2/gl2.h>
+}
+#include <highgui.h>
+#include <cv.h>
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #define ABOD_MAX_TRAP_POINTS (20000 * 10)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -100,10 +104,13 @@ GLuint fileTexId;
 GLuint abodTrapPoints = 0;
 GLuint abodTrapVbo;
 GLfloat abodTrapVertex[ABOD_MAX_TRAP_POINTS];
-
+using namespace cv;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main() {
     int exit_code;
+
+    Mat src;
+    src = imread( fileToLoad, 1 );
 
     RaspisilvioApplication abod;
     raspisilvioGetDefault(&abod);
