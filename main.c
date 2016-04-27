@@ -7,6 +7,7 @@
 #include "RaspiTexUtil.h"
 #include "raspisilvio.h"
 #include <GLES2/gl2.h>
+#include <highgui.h>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int edgeInit(RASPITEX_STATE *raspitex_state);

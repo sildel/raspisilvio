@@ -9,6 +9,8 @@ include_directories(${PROJECT_SOURCE_DIR}/../userland-master/host_applications/l
 include_directories(${PROJECT_SOURCE_DIR}/../userland-master/interface/khronos/include)
 include_directories(${PROJECT_SOURCE_DIR})
 
+find_package(OpenCV REQUIRED core highgui)
+
 set(GL_SCENE_SOURCES
         gl_scenes/models.c
         gl_scenes/mirror.c
@@ -35,4 +37,4 @@ set(THE_LIBS
         pthread
         m)
 
-target_link_libraries(raspisilvio ${THE_LIBS})
+target_link_libraries(raspisilvio ${THE_LIBS} ${OpenCV_LIBS})
