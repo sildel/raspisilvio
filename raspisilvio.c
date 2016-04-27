@@ -528,6 +528,10 @@ static int raspisilvio_draw(RASPITEX_STATE *state) {
 
 void raspisilvioGetDefault(RaspisilvioApplication *app) {
     default_status(&app->state);
+    app->useRGBATexture = 1;
+    app->useRGBATexture = 0;
+    app->useRGBATexture = 0;
+    app->useRGBATexture = 0;
     app->init = NULL;
     app->draw = NULL;
 }
@@ -557,6 +561,23 @@ int raspisilvioInitApp(RaspisilvioApplication *app) {
     } else {
         app->state.raspitex_state.ops.redraw = raspisilvio_draw;
     }
+
+    if (!app->useRGBATexture) {
+        app->state.raspitex_state.ops.update_texture = NULL;
+    }
+
+    if (app->useYTexture) {
+        app->state.raspitex_state.ops.update_y_texture = raspitexutil_update_y_texture;
+    }
+
+    if (app->useUTexture) {
+        app->state.raspitex_state.ops.update_u_texture = raspitexutil_update_u_texture;
+    }
+
+    if (app->useVTexture) {
+        app->state.raspitex_state.ops.update_v_texture = raspitexutil_update_v_texture;
+    }
+
     app->state.raspitex_state.ops.update_model = raspisilvio_update_model;
 
     if ((status = create_camera_component(&app->state)) != MMAL_SUCCESS) {
@@ -786,6 +807,39 @@ void raspisilvioProcessingCamera(RaspisilvioShaderProgram *shader, RASPITEX_STAT
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /* Do processing to the camera feed using the specified shader program and put it on the specified frame buffer.
+ * It only uses Y channel of the image
+ * The shader is expected to have these parameters:
+ * 1 - First attribute is the vertex and should contains only x and y coordinates
+ * 2 - First uniform is the texture unit and the type should be samplerExternalOES
+ * 3 - Second uniform is the dimension of the pixel in texture coordinates
+ *
+ * @param shader The shader to be used.
+ * @param state The state of the application.
+ * @param frameBuffer The name of the frame buffer.
+ * @return void.
+ */
+void raspisilvioProcessingCameraY(RaspisilvioShaderProgram *shader, RASPITEX_STATE *state, GLuint frameBuffer) {
+    GLCHK(glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer));
+    glViewport(0, 0, state->width, state->height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    GLCHK(glUseProgram(shader->program));
+    GLCHK(glUniform1i(shader->uniform_locations[0], 0)); // Texture unit
+    /* Dimensions of a single pixel in texture co-ordinates */
+    GLCHK(glUniform2f(shader->uniform_locations[1], 1.0 / (float) state->width,
+                      1.0 / (float) state->height));
+    GLCHK(glActiveTexture(GL_TEXTURE0));
+    GLCHK(glBindTexture(GL_TEXTURE_EXTERNAL_OES, state->y_texture));
+    GLCHK(glBindBuffer(GL_ARRAY_BUFFER, raspisilvioGetQuad()));
+    GLCHK(glEnableVertexAttribArray(shader->attribute_locations[0]));
+    GLCHK(glVertexAttribPointer(shader->attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0));
+    GLCHK(glDrawArrays(GL_TRIANGLES, 0, 6));
+    glFlush();
+    glFinish();
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+/* Do processing to the camera feed using the specified shader program and put it on the specified frame buffer.
  * It uses a second texture that can act as a mask (The shader should implement this).
  * The shader is expected to have these parameters:
  * 1 - First attribute is the vertex and should contains only x and y coordinates
@@ -831,6 +885,31 @@ void raspisilvioProcessingCameraMask(RaspisilvioShaderProgram *shader, RASPITEX_
  */
 void raspisilvioDrawCamera(RASPITEX_STATE *state) {
     raspisilvioHelpDraw(state);
+
+    glFlush();
+    glFinish();
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+/* Put the camera feed on the screen. It uses only Y channel of the image.
+ *
+ * @param state The state of the application.
+ * @return void.
+ */
+void raspisilvioDrawCameraY(RASPITEX_STATE *state) {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, state->width, state->height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glUseProgram(raspisilvioGetPreviewShader()->program);
+    glUniform1i(raspisilvioGetPreviewShader()->uniform_locations[0], 0);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, state->y_texture);
+    glBindBuffer(GL_ARRAY_BUFFER, raspisilvioGetQuad());
+    glEnableVertexAttribArray(raspisilvioGetPreviewShader()->attribute_locations[0]);
+    glVertexAttribPointer(raspisilvioGetPreviewShader()->attribute_locations[0], 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
     glFlush();
     glFinish();

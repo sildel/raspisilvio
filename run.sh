@@ -1,2 +1,2 @@
 cd /home/pi/raspisilvio
-cp build/raspisilvio ./
+cp build/raspisilvio .
